@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const dummyProjects = [
   {
@@ -40,9 +41,22 @@ const statusColors = {
 };
 
 const Projects = () => {
+  const navigate = useNavigate();
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Projects Dashboard</h2>
+      {/* Header + Button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-indigo-700">Projects Dashboard</h2>
+        <button
+          onClick={() => navigate('/projects/add')}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+        >
+          ➕ Add Project
+        </button>
+      </div>
+
+      {/* Project Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {dummyProjects.map((project) => {
           const mismatch = project.allocated < project.required;

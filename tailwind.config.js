@@ -1,10 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}", // ✅ This line is critical
+    "./src/**/*.{js,jsx,ts,tsx}", 
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['"Nunito Sans"', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 };

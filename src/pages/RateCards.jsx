@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 
 const initialRateCard = [
   { id: 1, role: 'Junior Developer', rate: 1500 },
-  { id: 2, role: 'Senior Developer', rate: 3000 },
-  { id: 3, role: 'Advanced Developer', rate: 5000 },
+  { id: 1, role: 'Mid Developer', rate: 2500 },
+  { id: 2, role: 'Senior Developer', rate: 3500 },
+  { id: 3, role: 'Advanced Developer', rate: 4500 },
+  { id: 1, role: 'Expert', rate: 7000 },
 ];
 
 const RateCards = () => {
@@ -18,13 +20,13 @@ const RateCards = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Global Rate Card (INR per Hour)</h2>
+      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Global Rate Card (INR per Day)</h2>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-xl shadow-md border border-gray-200">
           <thead className="bg-indigo-50 text-indigo-700">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-medium">Role</th>
-              <th className="px-6 py-3 text-left text-sm font-medium">Hourly Rate (₹)</th>
+              <th className="px-6 py-3 text-left text-sm font-medium">Per Day (₹)</th>
               <th className="px-6 py-3 text-left text-sm font-medium">Update</th>
             </tr>
           </thead>

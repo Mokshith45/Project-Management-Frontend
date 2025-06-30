@@ -1,10 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 import Layout from './components/Layout';
 import AppRoutes from './routes/AppRoutes';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
+import ProtectedRoute from './routes/ProtectedRoute';
 
 function App() {
   return (
@@ -19,7 +22,9 @@ function App() {
           path="/*"
           element={
             <Layout>
-              <AppRoutes />
+              <ProtectedRoute>
+                <AppRoutes />
+              </ProtectedRoute>
             </Layout>
           }
         />

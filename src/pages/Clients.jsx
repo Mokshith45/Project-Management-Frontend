@@ -1,6 +1,7 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const dummyClients = [
+const ClientsList = [
   {
     id: 1,
     name: 'Acme Corp',
@@ -28,11 +29,24 @@ const dummyClients = [
 ];
 
 const Clients = () => {
+  const navigate = useNavigate();
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Clients Dashboard</h2>
+      {/* Header + Button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-indigo-700">Clients Dashboard</h2>
+        <button
+          onClick={() => navigate('/clients/add')}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+        >
+          ➕ Add Client
+        </button>
+      </div>
+
+      {/* Clients Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {dummyClients.map((client) => (
+        {ClientsList.map((client) => (
           <div
             key={client.id}
             className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200"

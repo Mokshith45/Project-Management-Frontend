@@ -1,6 +1,46 @@
+@import "slick-carousel/slick/slick.css";
+@import "slick-carousel/slick/slick-theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.main-content-bg {
+  background-image: url('/wave3.svg');
+  background-repeat: no-repeat;
+  background-position: center center; /* adjust as needed */
+  background-size: cover; /* cover entire area */
+  min-height: calc(100vh - 4rem); /* subtract navbar height if navbar height is 4rem */
+}
+
+
+/* 
+.bg-wavy {
+  background-image:
+    url('/wave1.svg'),
+    url('/wave2.svg'),
+    radial-gradient(rgba(255, 94, 123, 0.65), transparent 50%),
+    radial-gradient(rgba(144, 0, 212, 0.9), transparent 70%),
+    radial-gradient(rgba(142, 231, 255, 0.2), transparent 70%);
+  background-position:
+    top -20vw right -30vw,
+    bottom -10vw left -20vw,
+    top -45vw right -40vw,
+    top -65vw right -50vw,
+    top 400px left -20vw;
+  background-size:
+    100vw 100vh,
+    100vw 100vh,
+    70vw 60vw,
+    110vw 90vw,
+    40vw 40vw;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+} */
+
+
 
 /* 
 :root {
