@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
-import BxaLogo from '../../assets/logobxa.png';
+import BxaLogo from '../../assets/logobxa.png'; // Make sure path is correct
+
 
 const SignIn = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -15,36 +16,37 @@ const SignIn = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
 
-    const isValidAdmin =
-      form.email === 'mokshith@admin.com' && form.password === 'admin';
+    const { email, password } = form;
 
-    if (isValidAdmin) {
-      localStorage.setItem(
-        'auth',
-        JSON.stringify({ email: form.email, role: 'ADMIN' })
-      );
+    if (email === 'mokshith@admin.com' && password === 'admin') {
+      localStorage.setItem('auth', JSON.stringify({ email, role: 'ADMIN' }));
       navigate('/');
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u) => u.email === email && u.password === password);
+
+    if (user) {
+      localStorage.setItem('auth', JSON.stringify({ email: user.email, role: 'USER' }));
+      navigate('/user/home');
     } else {
-      setError('Invalid email or password.');
+      setError('Invalid credentials.');
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col text-white bg-gradient-to-r from-indigo-500 to-purple-900">
+      {/* Logo Header */}
       <header className="flex justify-center p-4">
-        <Link
-          to="/"
-          className="flex items-center gap-3 pl-1 cursor-pointer hover:opacity-90 transition"
-        >
-          <img
-            src={BxaLogo}
-            alt="Logo"
-            className="h-28 md:h-36 w-auto object-contain"
-          />
+        <Link to="/" className="flex items-center gap-3 pl-1 hover:opacity-90 transition">
+          <img src={BxaLogo} alt="Logo" className="h-16 md:h-15 w-auto object-contain" />
         </Link>
       </header>
 
+      {/* Sign-in Form Card */}
       <main className="flex-grow flex items-center justify-center px-4">
         <div className="bg-white/10 p-8 rounded-xl shadow-xl w-full max-w-md bg-gradient-to-br from-indigo-700 to-purple-700">
           <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
@@ -66,13 +68,11 @@ const SignIn = () => {
               onChange={handleChange}
               placeholder="••••••••"
             />
-
             {error && (
               <p className="text-sm text-red-300 text-center font-medium">
                 {error}
               </p>
             )}
-
             <Button type="submit">Sign In</Button>
           </form>
 

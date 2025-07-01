@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
-import { Link } from 'react-router-dom';
-import BxaLogo from '../../assets/logobxa.png'
+import { Link, useNavigate } from 'react-router-dom';
+import BxaLogo from '../../assets/logobxa.png';
 
 const SignUp = () => {
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'USER',
   });
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,32 +20,51 @@ const SignUp = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      alert("Passwords don't match");
+    setError('');
+
+    if (form.email === 'mokshith@admin.com') {
+      setError("You cannot register with this admin email.");
       return;
     }
-    // TODO: Call register API
-    console.log('Registering:', form);
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const userExists = users.some((user) => user.email === form.email);
+
+    if (userExists) {
+      setError('User already exists!');
+      return;
+    }
+
+    users.push({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      role: 'USER',
+    });
+
+    localStorage.setItem('users', JSON.stringify(users));
+    navigate('/signin');
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-r from-indigo-500 to-purple-900">
 
-      {/* Centered Logo */}
+      {/* Logo */}
       <header className="w-full flex justify-center mt-6">
         <Link
           to="/"
           className="flex justify-center items-center gap-3 cursor-pointer hover:opacity-90 transition"
         >
-          <img
-            src={BxaLogo}
-            alt="Logo"
-            className="h-28 md:h-36 w-auto object-contain"
-          />
+          <img src={BxaLogo} alt="Logo" className="h-16 md:h-15 w-auto object-contain" />
         </Link>
       </header>
 
-      {/* Form Container */}
+      {/* Sign Up Form Card */}
       <div className="p-8 mt-2 bg-gradient-to-br from-indigo-700 to-purple-700 rounded-xl shadow-xl w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
 
@@ -54,7 +74,7 @@ const SignUp = () => {
             name="name"
             value={form.name}
             onChange={handleChange}
-            placeholder="Garipally Mokshith"
+            placeholder="Mokshith Garipally"
           />
           <Input
             label="Email"
@@ -80,18 +100,13 @@ const SignUp = () => {
             onChange={handleChange}
             placeholder="••••••••"
           />
-          <div>
-            <label className="block text-sm text-gray-200 mb-1">Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-indigo-700 text-white border border-indigo-300 rounded-md"
-            >
-              <option value="USER">User</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
+
+          {/* Error Display */}
+          {error && (
+            <p className="text-sm text-red-300 text-center font-medium">
+              {error}
+            </p>
+          )}
 
           <Button type="submit">Sign Up</Button>
         </form>
