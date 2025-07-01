@@ -1,14 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
-  FaUserTie,
-  FaProjectDiagram,
-  FaBriefcase,
-  FaMoneyBillWave,
-  FaPlus,
-  FaFolderOpen,
-  FaThumbtack,
+  FaUserTie, FaProjectDiagram, FaBriefcase,
+  FaMoneyBillWave
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import CountUp from 'react-countup';
 
 const stats = [
   {
@@ -40,107 +37,119 @@ const alerts = [
 ];
 
 const highlights = [
-  {
-    id: 1,
-    title: 'Phase 1 Delivered',
-    project: 'Website Revamp',
-    date: '2024-06-20',
-  },
-  {
-    id: 2,
-    title: 'MVP Release',
-    project: 'Compliance Portal',
-    date: '2024-06-18',
-  },
+  { id: 1, title: 'Phase 1 Delivered', project: 'Website Revamp', date: '2024-06-20' },
+  { id: 2, title: 'MVP Release', project: 'Compliance Portal', date: '2024-06-18' },
 ];
 
-
 const Home = () => {
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
   return (
     <div className="min-h-screen px-6 py-8 max-w-screen-xl mx-auto flex flex-col gap-8">
-      {/* Top Section: Welcome + CTA side-by-side */}
-      <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-        {/* Welcome Card */}
+
+      {/* Welcome Card */}
+      <motion.div
+        initial={{ opacity: 0, x: -40 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col md:flex-row items-start justify-between gap-6"
+      >
         <div className="flex-grow max-w-2xl bg-gradient-to-r from-indigo-700 to-purple-700 text-white p-6 rounded-xl shadow">
           <h1 className="text-3xl font-bold">Welcome back, Admin👋</h1>
           <p className="text-sm text-indigo-100 mt-1">Here’s your dashboard</p>
         </div>
 
-        {/* Floating Vertical CTA */}
+        {/* CTA buttons */}
         <aside className="flex flex-row md:flex-col gap-4">
-          {/* Add New Project */}
-          <div className="group flex items-center cursor-pointer">
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-md transition duration-200"
-                                onClick={()=>navigate('projects/add')}>
-              <FaProjectDiagram />
-            </button>
-            <span
-              className="
-                ml-2 bg-indigo-600 
-                text-white px-3 py-1 rounded-md text-sm font-medium
-                opacity-0 group-hover:opacity-100
-                scale-90 group-hover:scale-100
-                transition-all duration-200 origin-left whitespace-nowrap shadow-md
-                "
-            >
-              Add New Project
-            </span>
-          </div>
-
-          {/* Add Client */}
-          <div className="group flex items-center cursor-pointer">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full shadow-md transition duration-200"
-                                onClick={()=>navigate('clients/add')}>
-              <FaUserTie />
-            </button>
-            <span
-              className="ml-2 bg-purple-600 text-white px-3 py-1 rounded-md text-sm font-medium
-                opacity-0 group-hover:opacity-100
-                scale-90 group-hover:scale-100
-                transition-all duration-200 origin-left whitespace-nowrap shadow-md"
-            >
-              Add Client
-            </span>
-          </div>
-
-          {/* Post Open Role */}
-          <div className="group flex items-center cursor-pointer">
-            <button className="bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-full shadow-md transition duration-200"
-                                onClick={()=>navigate('open-positions/add')}>
-              <FaBriefcase />
-            </button>
-            <span
-              className="ml-2 bg-yellow-500 text-white px-3 py-1 rounded-md text-sm font-medium
-                opacity-0 group-hover:opacity-100
-                scale-90 group-hover:scale-100
-                transition-all duration-200 origin-left whitespace-nowrap shadow-md"
-            >
-              Post Open Role
-            </span>
-          </div>
+            {[
+                {
+                icon: <FaProjectDiagram />,
+                label: 'Add New Project',
+                path: 'projects/add',
+                bgClass: 'bg-indigo-600',
+                hoverClass: 'hover:bg-indigo-700',
+                },
+                {
+                icon: <FaUserTie />,
+                label: 'Add Client',
+                path: 'clients/add',
+                bgClass: 'bg-purple-600',
+                hoverClass: 'hover:bg-purple-700',
+                },
+                {
+                icon: <FaBriefcase />,
+                label: 'Post Open Role',
+                path: 'open-positions/add',
+                bgClass: 'bg-yellow-500',
+                hoverClass: 'hover:bg-yellow-600',
+                },
+            ].map((cta, i) => (
+                <motion.div
+                key={i}
+                whileHover={{ scale: 1.1 }}
+                className="group flex items-center cursor-pointer"
+                >
+                <button
+                    className={`${cta.bgClass} ${cta.hoverClass} text-white p-3 rounded-full shadow-md transition duration-200`}
+                    onClick={() => navigate(cta.path)}
+                >
+                    {cta.icon}
+                </button>
+                <span
+                    className={`${cta.bgClass} text-white ml-2 px-3 py-1 rounded-md text-sm font-medium
+                    opacity-0 group-hover:opacity-100
+                    scale-90 group-hover:scale-100
+                    transition-all duration-200 origin-left whitespace-nowrap shadow-md`}
+                >
+                    {cta.label}
+                </span>
+                </motion.div>
+            ))}
         </aside>
-      </div>
+
+      </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          visible: {
+            transition: {
+              staggerChildren: 0.2,
+            },
+          },
+        }}
+      >
         {stats.map((stat, index) => (
-          <div
+          <motion.div
             key={index}
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0 },
+            }}
             className="bg-white shadow-md rounded-xl p-5 flex items-center gap-4"
           >
             <div className="bg-gray-100 p-3 rounded-full">{stat.icon}</div>
             <div>
               <p className="text-sm text-gray-500">{stat.title}</p>
-              <p className="text-xl font-semibold text-gray-800">{stat.value}</p>
+              <p className="text-xl font-semibold text-gray-800">
+                <CountUp end={stat.value} duration={1.5} />
+              </p>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Alerts Section */}
-      <section className="mb-10">
+      {/* Alerts */}
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
         <h2 className="text-lg font-semibold text-red-600 mb-3">⚠️ Alerts & Notifications</h2>
         <ul className="bg-white border border-red-200 p-4 rounded-xl space-y-2 shadow-sm">
           {alerts.map((alert) => (
@@ -149,23 +158,28 @@ const Home = () => {
             </li>
           ))}
         </ul>
-      </section>
+      </motion.section>
 
-      {/* Recent Highlights */}
-      <section className="mb-10">
+      {/* Highlights */}
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
         <h2 className="text-lg font-semibold text-indigo-700 mb-4">🎯 Recent Highlights</h2>
         <ol className="relative border-l-2 border-indigo-300 ml-4">
-            {highlights.map((hl) => (
+          {highlights.map((hl) => (
             <li key={hl.id} className="mb-8 pl-6 relative">
-                {/* Dot */}
-                <span className="absolute -left-3 top-2 w-4 h-4 bg-indigo-600 rounded-full border-2 border-white" />
-                <h4 className="text-sm font-bold text-indigo-800">{hl.title}</h4>
-                <p className="text-xs text-gray-600">Project: {hl.project}</p>
-                <p className="text-xs text-gray-400">Date: {hl.date}</p>
+              <span className="absolute -left-3 top-2 w-4 h-4 bg-indigo-600 rounded-full border-2 border-white" />
+              <h4 className="text-sm font-bold text-indigo-800">{hl.title}</h4>
+              <p className="text-xs text-gray-600">Project: {hl.project}</p>
+              <p className="text-xs text-gray-400">Date: {hl.date}</p>
             </li>
-            ))}
+          ))}
         </ol>
-      </section>
+      </motion.section>
 
     </div>
   );

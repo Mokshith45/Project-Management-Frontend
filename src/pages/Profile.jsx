@@ -2,33 +2,29 @@ import React from 'react';
 
 const Profile = () => {
   const adminData = {
-    name: 'Mokshith Garipally',
+    id: 'ADM001',
+    name: 'Garipally Mokshith',
     email: 'mokshith@admin.com',
-    role: 'Admin',
-    lastLogin: 'June 29, 2025 12:44 AM',
   };
 
   return (
-    <div className="bg-white shadow-md rounded-xl p-6 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold text-indigo-700 mb-4">👤 Admin Profile</h2>
+    <div className="bg-white shadow-lg rounded-xl p-8 max-w-xl mx-auto mt-10">
+      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Admin Profile</h2>
 
-      <div className="space-y-4 text-gray-700">
+      <div className="space-y-5 text-gray-800 text-base">
         <div>
-          <span className="font-semibold">Name:</span> {adminData.name}
+          <span className="font-semibold">ID:</span> {adminData.id}
         </div>
         <div>
-          <span className="font-semibold">Email:</span> {adminData.email}
+          <span className="font-semibold"> Name:</span> {adminData.name}
         </div>
         <div>
-          <span className="font-semibold">Role:</span> {adminData.role}
-        </div>
-        <div>
-          <span className="font-semibold">Last Login:</span> {adminData.lastLogin}
+          <span className="font-semibold"> Email:</span> {adminData.email}
         </div>
       </div>
 
       <div className="mt-6">
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+        <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md shadow transition duration-200">
           Change Password
         </button>
       </div>

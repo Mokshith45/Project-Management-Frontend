@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import BxaLogo from '../../assets/logobxa.png';
 
 const SignIn = () => {
-  const [form, setForm] = useState({ email: '', password: '', role: 'ADMIN' }); // default role is ADMIN
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -17,18 +17,16 @@ const SignIn = () => {
     e.preventDefault();
 
     const isValidAdmin =
-      form.email === 'mokshith@admin.com' &&
-      form.password === 'admin' &&
-      form.role === 'ADMIN';
+      form.email === 'mokshith@admin.com' && form.password === 'admin';
 
     if (isValidAdmin) {
       localStorage.setItem(
         'auth',
-        JSON.stringify({ email: form.email, role: form.role })
+        JSON.stringify({ email: form.email, role: 'ADMIN' })
       );
       navigate('/');
     } else {
-      setError('Invalid credentials or role.');
+      setError('Invalid email or password.');
     }
   };
 
@@ -68,18 +66,6 @@ const SignIn = () => {
               onChange={handleChange}
               placeholder="••••••••"
             />
-            <div className="mb-4">
-              <label className="block text-sm text-gray-200 mb-1">Role</label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-indigo-700 text-white border border-indigo-300 rounded-md"
-                disabled
-              >
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
 
             {error && (
               <p className="text-sm text-red-300 text-center font-medium">
