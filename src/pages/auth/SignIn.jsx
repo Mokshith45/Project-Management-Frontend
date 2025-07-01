@@ -3,6 +3,8 @@ import Input from '../../ui/Input';
 import Button from '../../ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
 import BxaLogo from '../../assets/logobxa.png';
+import { login } from '../../api/auth';
+import { jwtDecode } from 'jwt-decode';
 
 const SignIn = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -13,20 +15,27 @@ const SignIn = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    const isValidAdmin =
-      form.email === 'mokshith@admin.com' && form.password === 'admin';
+    try {
+      const res = await login(form);
+      const token = res.data;
+      const decoded = jwtDecode(token);
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', decoded.role);
+      console.log('Login successful:', decoded);
 
-    if (isValidAdmin) {
-      localStorage.setItem(
-        'auth',
-        JSON.stringify({ email: form.email, role: 'ADMIN' })
-      );
+
+
       navigate('/');
-    } else {
-      setError('Invalid email or password.');
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError('Invalid email or password.');
+      } else {
+        setError('Something went wrong. Try again.');
+      }
     }
   };
 

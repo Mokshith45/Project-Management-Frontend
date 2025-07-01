@@ -11,7 +11,10 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth');
+    // localStorage.removeItem('auth');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role'); 
+    setDropdownOpen(false);
     navigate('/signin');
   };
 

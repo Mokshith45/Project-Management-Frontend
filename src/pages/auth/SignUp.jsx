@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
-import { Link } from 'react-router-dom';
-import BxaLogo from '../../assets/logobxa.png'
+import { Link, useNavigate } from 'react-router-dom';
+import BxaLogo from '../../assets/logobxa.png';
+import { register } from '../../api/auth';
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -13,18 +14,39 @@ const SignUp = () => {
     role: 'USER',
   });
 
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (form.password !== form.confirmPassword) {
-      alert("Passwords don't match");
+      setError("Passwords don't match");
       return;
     }
-    // TODO: Call register API
-    console.log('Registering:', form);
+
+    try {
+      await register({
+        userName: form.name,
+        email: form.email,
+        password: form.password,
+        userType: form.role,
+      });
+
+      navigate('/signin');
+    } catch (err) {
+      console.error('REGISTER ERROR:', err);
+      if (err.response?.data) {
+        setError(err.response.data);
+      } else {
+        setError('Something went wrong. Try again.');
+      }
+    }
   };
 
   return (
@@ -92,6 +114,12 @@ const SignUp = () => {
               <option value="ADMIN">Admin</option>
             </select>
           </div>
+
+          {error && (
+            <p className="text-sm text-red-300 text-center font-medium">
+              {error}
+            </p>
+          )}
 
           <Button type="submit">Sign Up</Button>
         </form>
