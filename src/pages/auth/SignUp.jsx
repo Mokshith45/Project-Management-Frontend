@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
 import { Link } from 'react-router-dom';
+import BxaLogo from '../../assets/logobxa.png'
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -27,8 +28,24 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-800 to-purple-800 text-white">
-      <div className="bg-white/10 p-8 rounded-xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-r from-indigo-500 to-purple-900">
+
+      {/* Centered Logo */}
+      <header className="w-full flex justify-center mt-6">
+        <Link
+          to="/"
+          className="flex justify-center items-center gap-3 cursor-pointer hover:opacity-90 transition"
+        >
+          <img
+            src={BxaLogo}
+            alt="Logo"
+            className="h-28 md:h-36 w-auto object-contain"
+          />
+        </Link>
+      </header>
+
+      {/* Form Container */}
+      <div className="p-8 mt-2 bg-gradient-to-br from-indigo-700 to-purple-700 rounded-xl shadow-xl w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -37,7 +54,7 @@ const SignUp = () => {
             name="name"
             value={form.name}
             onChange={handleChange}
-            placeholder="Mokshith Garipally"
+            placeholder="Garipally Mokshith"
           />
           <Input
             label="Email"
@@ -69,7 +86,7 @@ const SignUp = () => {
               name="role"
               value={form.role}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-white/10 text-white border border-indigo-300 rounded-md"
+              className="w-full px-4 py-2 bg-indigo-700 text-white border border-indigo-300 rounded-md"
             >
               <option value="USER">User</option>
               <option value="ADMIN">Admin</option>

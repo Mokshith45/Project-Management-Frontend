@@ -4,7 +4,7 @@ import { FaUserCircle } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import { FiLogOut } from 'react-icons/fi';
 import { BsPerson } from 'react-icons/bs';
-import BxaLogo from '../assets/bxalogo.png';
+import BxaLogo from '../assets/logobxa.png'
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="h-16 w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-md backdrop-blur-md bg-opacity-90 z-50 flex items-center px-4 md:px-6 justify-between fixed top-0 left-0 rounded-b-xl transition-all duration-300">
+    <header className="h-16 w-full bg-gradient-to-r from-indigo-700 to-purple-700 text-white shadow-md backdrop-blur-md bg-opacity-90 z-50 flex items-center px-4 md:px-6 justify-between fixed top-0 left-0 rounded-b-xl transition-all duration-300">
       
       {/* Logo */}
       <Link

@@ -65,7 +65,7 @@ const Home = () => {
         {/* Welcome Card */}
         <div className="flex-grow max-w-2xl bg-gradient-to-r from-indigo-700 to-purple-700 text-white p-6 rounded-xl shadow">
           <h1 className="text-3xl font-bold">Welcome back, Admin👋</h1>
-          <p className="text-sm text-indigo-100 mt-1">Here’s your project overview dashboard</p>
+          <p className="text-sm text-indigo-100 mt-1">Here’s your dashboard</p>
         </div>
 
         {/* Floating Vertical CTA */}

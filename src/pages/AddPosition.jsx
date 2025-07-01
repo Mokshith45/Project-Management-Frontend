@@ -47,7 +47,7 @@ const AddPosition = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Project ID */}
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Project ID *</label>
+          <label className="block text-sm text-gray-600 mb-1">Project ID  <span className="text-red-500">*</span></label>
           <input
             type="number"
             name="projectId"
@@ -61,7 +61,7 @@ const AddPosition = () => {
 
         {/* Level (ResourceLevel enum) */}
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Resource Level *</label>
+          <label className="block text-sm text-gray-600 mb-1">Resource Level <span className="text-red-500">*</span></label>
           <select
             name="level"
             value={form.level}
@@ -80,7 +80,7 @@ const AddPosition = () => {
 
         {/* Number Required */}
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Number of Positions *</label>
+          <label className="block text-sm text-gray-600 mb-1">Number of Positions <span className="text-red-500">*</span></label>
           <input
             type="number"
             name="numberRequired"
