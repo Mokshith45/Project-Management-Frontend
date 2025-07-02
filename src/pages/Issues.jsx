@@ -47,15 +47,29 @@ const containerVariants = {
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
 };
 
 const Issues = () => {
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">🐞 Project Issues</h2>
+    <motion.div
+      className="p-4 md:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Header */}
+      <motion.h2
+        className="text-2xl font-bold text-indigo-700 mb-6"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
+        🐞 Project Issues
+      </motion.h2>
 
+      {/* Issue Cards */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -66,24 +80,28 @@ const Issues = () => {
           <motion.div
             key={issue.id}
             variants={cardVariants}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 relative hover:shadow-lg transition"
+            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 relative hover:shadow-xl transition-all"
           >
+            {/* Critical Tag */}
             {issue.isCritical && (
-              <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
+              <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full shadow">
                 Critical
               </span>
             )}
+
             <div className="mb-2 text-sm text-gray-500">{issue.type}</div>
+
             <h3 className="text-lg font-semibold text-gray-800">{issue.title}</h3>
+
             <p className="text-sm text-gray-600 mt-2">
               <strong>Duration:</strong>{' '}
               {issue.startDate} – {issue.endDate || 'Ongoing'}
             </p>
+
             <p className="text-sm mt-2">
               <strong>Status:</strong>{' '}
               <span
-                className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusColors[issue.status]}`}
+                className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${statusColors[issue.status]}`}
               >
                 {issue.status}
               </span>
@@ -91,7 +109,7 @@ const Issues = () => {
           </motion.div>
         ))}
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

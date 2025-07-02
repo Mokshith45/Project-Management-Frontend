@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const achievements = [
   {
@@ -21,24 +22,57 @@ const achievements = [
   }
 ];
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.15,
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 10 },
+  visible: { opacity: 1, scale: 1, y: 0 }
+};
+
 const MyAchievements = () => {
   return (
-    <div className="pt-10 px-6">
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">🏆 My Achievements</h2>
+    <motion.div
+      className="pt-10 px-6 max-w-6xl mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.h2
+        className="text-2xl font-bold text-indigo-700 mb-6"
+        variants={cardVariants}
+      >
+        🏆 My Achievements
+      </motion.h2>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <motion.div
+        className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
+        variants={containerVariants}
+      >
         {achievements.map((ach) => (
-          <div
+          <motion.div
             key={ach.id}
-            className="bg-white border border-indigo-100 p-4 rounded-lg shadow hover:shadow-md transition"
+            className="bg-white border border-indigo-100 p-4 rounded-lg shadow hover:shadow-lg transition-all"
+            variants={cardVariants}
+            whileHover={{ scale: 1.03 }}
           >
             <h3 className="text-lg font-semibold text-indigo-800">{ach.title}</h3>
             <p className="text-sm text-gray-600 mt-1">{ach.description}</p>
             <p className="text-xs text-gray-500 mt-2">📅 {ach.date}</p>
-          </div>
+          </motion.div>
         ))}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
