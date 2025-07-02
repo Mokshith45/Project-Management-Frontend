@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const statusStyles = {
   Open: 'text-red-600 bg-red-100',
@@ -6,8 +7,30 @@ const statusStyles = {
   Closed: 'text-green-600 bg-green-100'
 };
 
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.15,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.85 },
+  visible: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.85 },
+};
+
 const MyIssues = () => {
-  // 🔒 Assume project ID is pulled from some context or user assignment
   const currentProjectId = 101;
 
   const [issues, setIssues] = useState([
@@ -16,7 +39,7 @@ const MyIssues = () => {
       title: 'Login page crashes on Safari',
       description: 'Users are unable to login using Safari on iOS 16.',
       createdOn: '2024-06-01',
-      priority: 'High',
+      severity: 'High',
       status: 'Open',
       projectId: currentProjectId,
       createdBy: 'harika@user.com'
@@ -26,7 +49,7 @@ const MyIssues = () => {
       title: 'Slow dashboard loading',
       description: 'Dashboard takes more than 10 seconds to load.',
       createdOn: '2024-06-05',
-      priority: 'Medium',
+      severity: 'Medium',
       status: 'Open',
       projectId: currentProjectId,
       createdBy: 'harika@user.com'
@@ -36,7 +59,7 @@ const MyIssues = () => {
       title: 'Typo in footer links',
       description: 'Misspelling in "Terms & Conditions".',
       createdOn: '2024-06-10',
-      priority: 'Low',
+      severity: 'Low',
       status: 'Closed',
       projectId: currentProjectId,
       createdBy: 'harika@user.com'
@@ -59,13 +82,11 @@ const MyIssues = () => {
 
   const handleAddIssue = (e) => {
     e.preventDefault();
-
     const newEntry = {
       ...newIssue,
       id: issues.length + 1,
       createdOn: new Date().toISOString().split('T')[0]
     };
-
     setIssues([...issues, newEntry]);
     setShowModal(false);
     setNewIssue({
@@ -79,23 +100,31 @@ const MyIssues = () => {
   };
 
   return (
-    <div className="pt-10 px-6">
-      <div className="flex justify-between items-center mb-6">
+    <motion.div
+      className="pt-10 px-6 max-w-4xl mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="flex justify-between items-center mb-6" variants={itemVariants}>
         <h2 className="text-2xl font-bold text-indigo-700">🐞 My Project Issues</h2>
-        <button
+        <motion.button
           onClick={() => setShowModal(true)}
           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           ➕ Add Issue
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Issue List */}
-      <div className="space-y-4">
+      <motion.div className="space-y-4">
         {issues.map((issue) => (
-          <div
+          <motion.div
             key={issue.id}
             className="bg-white border border-indigo-100 rounded-lg shadow p-4"
+            variants={itemVariants}
           >
             <div className="flex justify-between items-start">
               <div>
@@ -112,99 +141,113 @@ const MyIssues = () => {
                 {issue.status}
               </span>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Modal Form */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-xl relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-red-500 text-lg"
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={modalVariants}
+          >
+            <motion.div
+              className="bg-white p-6 rounded-xl w-full max-w-lg shadow-xl relative"
+              variants={modalVariants}
+              transition={{ duration: 0.25 }}
             >
-              ✖
-            </button>
-            <h3 className="text-xl font-bold text-indigo-700 mb-4">➕ New Issue</h3>
-            <form onSubmit={handleAddIssue} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={newIssue.title}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                  placeholder="Issue Title"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Severity</label>
-                <select
-                  name="severity"
-                  value={newIssue.severity}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                >
-                  <option>Urgent</option>
-                  <option>High</option>
-                  <option>Medium</option>
-                  <option>Low</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  name="description"
-                  value={newIssue.description}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                  rows={3}
-                  placeholder="Describe the issue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Created By</label>
-                <input
-                  type="text"
-                  name="createdBy"
-                  value={newIssue.createdBy}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                  placeholder="Your name or email"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <select
-                  name="status"
-                  value={newIssue.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                >
-                  <option>Open</option>
-                  <option>In Progress</option>
-                  <option>Closed</option>
-                </select>
-              </div>
-
               <button
-                type="submit"
-                className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
+                onClick={() => setShowModal(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-red-500 text-lg"
               >
-                Submit Issue
+                ✖
               </button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              <h3 className="text-xl font-bold text-indigo-700 mb-4">➕ New Issue</h3>
+              <form onSubmit={handleAddIssue} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={newIssue.title}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Issue Title"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Severity</label>
+                  <select
+                    name="severity"
+                    value={newIssue.severity}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                  >
+                    <option>Urgent</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Description</label>
+                  <textarea
+                    name="description"
+                    value={newIssue.description}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    rows={3}
+                    placeholder="Describe the issue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Created By</label>
+                  <input
+                    type="text"
+                    name="createdBy"
+                    value={newIssue.createdBy}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Your name or email"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <select
+                    name="status"
+                    value={newIssue.status}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                  >
+                    <option>Open</option>
+                    <option>In Progress</option>
+                    <option>Closed</option>
+                  </select>
+                </div>
+
+                <motion.button
+                  type="submit"
+                  className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Submit Issue
+                </motion.button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

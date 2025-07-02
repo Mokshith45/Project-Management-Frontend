@@ -40,7 +40,7 @@ const UserDashboard = () => {
     <div className="p-6 pt-24 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-bold text-indigo-700 mb-6">📊 Dashboard Overview</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
         
         {/* Project Completion Donut */}
         <div className="bg-white rounded-xl p-4 shadow">
