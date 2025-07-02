@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import axios from '../api/axios'
 import { useNavigate, Link } from 'react-router-dom';
 import { FaUserCircle } from 'react-icons/fa';
 import { FiSearch, FiLogOut } from 'react-icons/fi';
@@ -11,6 +13,22 @@ const Navbar = () => {
 
   const role = localStorage.getItem('role') || 'user'; 
   const isAdmin = role === 'ADMIN';
+  const [username, setUsername] = useState('User');
+  useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      const userId = decoded.id;
+
+      axios.get(`/api/users/${userId}`)
+        .then((res) => setUsername(res.data.userName))
+        .catch(() => setUsername('User'));
+    } catch {
+      setUsername('User');
+    }
+  }
+}, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -47,7 +65,7 @@ const Navbar = () => {
         >
           <FaUserCircle className="text-white text-2xl md:text-3xl drop-shadow-sm hover:text-indigo-200 transition duration-200" />
           <span className="hidden sm:inline text-sm font-bold text-white/90 drop-shadow-sm hover:text-white transition duration-200">
-            User
+            {username}
           </span>
         </div>
 
