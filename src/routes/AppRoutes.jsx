@@ -31,6 +31,7 @@ import UserProfile from '../pages/userPages/UserProfile';
 import MyProject from '../pages/userPages/MyProject';
 
 
+
 const AppRoutes = () => {
   const role = localStorage.getItem('role');
   return (
@@ -53,6 +54,7 @@ const AppRoutes = () => {
                 <Route path="/clients/add" element={<AddClient />} />
                 <Route path="/open-positions/add" element={<AddPosition />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path='/admin/add' element={<AddAdmin/>}/>
               </>
             )}
 

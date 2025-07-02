@@ -30,28 +30,37 @@ const ClientsList = [
 ];
 
 const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
+  hidden: {},
+  show: {
     transition: {
-      staggerChildren: 0.15,
+      staggerChildren: 0.2,
     },
   },
 };
 
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
 };
 
 const Clients = () => {
   const navigate = useNavigate();
 
   return (
-    <div>
+    <motion.div
+      className="p-4 md:p-6"
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+    >
       {/* Header + Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-indigo-700">Clients Dashboard</h2>
+      <motion.div
+        className="flex justify-between items-center mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2 className="text-2xl font-bold text-indigo-700">👥 Clients Dashboard</h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -60,15 +69,10 @@ const Clients = () => {
         >
           ➕ Add Client
         </motion.button>
-      </div>
+      </motion.div>
 
-      {/* Clients Grid with Animation */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-      >
+      {/* Clients Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {ClientsList.map((client) => (
           <motion.div
             key={client.id}
@@ -90,13 +94,14 @@ const Clients = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition-colors"
+              onClick={() => navigate(`/clients/${client.id}/projects`)}
             >
               View Projects
             </motion.button>
           </motion.div>
         ))}
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 };
 

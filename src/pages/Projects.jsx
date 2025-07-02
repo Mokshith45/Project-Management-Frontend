@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const dummyProjects = [
   {
@@ -40,13 +41,37 @@ const statusStyles = {
   'On Hold': 'bg-red-100 text-red-800',
 };
 
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.2,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0 },
+};
+
 const Projects = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="p-4 md:p-6">
+    <motion.div
+      className="p-4 md:p-6"
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+    >
       {/* Header + Add Project */}
-      <div className="flex justify-between items-center mb-8">
+      <motion.div
+        className="flex justify-between items-center mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <h2 className="text-2xl font-bold text-indigo-700">📊 Projects Dashboard</h2>
         <button
           onClick={() => navigate('/projects/add')}
@@ -54,7 +79,7 @@ const Projects = () => {
         >
           ➕ Add Project
         </button>
-      </div>
+      </motion.div>
 
       {/* Project Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -62,9 +87,11 @@ const Projects = () => {
           const mismatch = project.allocated < project.required;
 
           return (
-            <div
+            <motion.div
               key={project.id}
               className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300"
+              variants={cardVariants}
+              whileHover={{ scale: 1.03 }}
             >
               <div className="mb-3">
                 <h3 className="text-lg font-semibold text-gray-800">{project.title}</h3>
@@ -91,11 +118,11 @@ const Projects = () => {
                   </span>
                 </p>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
