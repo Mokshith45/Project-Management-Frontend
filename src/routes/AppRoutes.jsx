@@ -20,6 +20,7 @@ import AddPosition from '../pages/AddPosition';
 
 import Resources from '../pages/Resources';
 import SignIn from '../pages/auth/SignIn';
+import AddAdmin from '../pages/AddAdmin';
 
 
 const AppRoutes = () => {
@@ -44,6 +45,8 @@ const AppRoutes = () => {
             <Route path='/open-positions/add' element={<AddPosition/>}/>
 
             <Route path='/profile' element={<Profile/>} />
+
+            <Route path='/admin/add' element={<AddAdmin/>} />
 
           </Routes>
         </main>

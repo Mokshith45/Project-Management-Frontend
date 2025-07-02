@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const dummyIssues = [
   {
@@ -36,15 +37,37 @@ const statusColors = {
   Resolved: 'bg-green-100 text-green-800',
 };
 
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.15,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
 const Issues = () => {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Project Issues</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <h2 className="text-2xl font-bold text-indigo-700 mb-6">🐞 Project Issues</h2>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
         {dummyIssues.map((issue) => (
-          <div
+          <motion.div
             key={issue.id}
-            className={`bg-white p-5 rounded-xl shadow-md border border-gray-200 relative hover:shadow-lg transition`}
+            variants={cardVariants}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 relative hover:shadow-lg transition"
           >
             {issue.isCritical && (
               <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
@@ -59,13 +82,15 @@ const Issues = () => {
             </p>
             <p className="text-sm mt-2">
               <strong>Status:</strong>{' '}
-              <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusColors[issue.status]}`}>
+              <span
+                className={`px-2 py-0.5 rounded-md text-xs font-medium ${statusColors[issue.status]}`}
+              >
                 {issue.status}
               </span>
             </p>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

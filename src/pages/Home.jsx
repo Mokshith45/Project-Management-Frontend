@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import {
   FaUserTie, FaProjectDiagram, FaBriefcase,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaUserShield
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -62,10 +63,10 @@ const Home = () => {
         {/* CTA buttons */}
         <aside className="flex flex-row md:flex-col gap-4">
             {[
-                {
-                icon: <FaProjectDiagram />,
-                label: 'Add New Project',
-                path: 'projects/add',
+               {
+                icon: <FaUserShield />,
+                label: 'Add New Admin',
+                path: 'admin/add',
                 bgClass: 'bg-indigo-600',
                 hoverClass: 'hover:bg-indigo-700',
                 },
