@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
-import BxaLogo from '../../assets/logobxa.png';
+import BxaLogo from '../../assets/logg.png';
 import { register } from '../../api/auth';
 
 const SignUp = () => {
