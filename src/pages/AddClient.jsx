@@ -14,7 +14,7 @@ const AddClient = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Basic validation
@@ -23,7 +23,6 @@ const AddClient = () => {
       return;
     }
 
-    // clientRating should be number between 0 and 10 if provided
     if (
       form.clientRating !== '' &&
       (isNaN(form.clientRating) ||
@@ -34,7 +33,6 @@ const AddClient = () => {
       return;
     }
 
-    // Format data to send
     const clientData = {
       name: form.name,
       email: form.email,
@@ -42,10 +40,30 @@ const AddClient = () => {
       clientRating: form.clientRating ? Number(form.clientRating) : null,
     };
 
-    console.log('✅ Client Submitted:', clientData);
-    // API POST request will be added here
+    try {
+      const token = localStorage.getItem('jwtToken');
+      const response = await fetch('http://localhost:8080/api/clients', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clientData),
+      });
 
-    navigate('/clients');
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Failed to add client: ${response.status} - ${text}`);
+      }
+
+      const createdClient = await response.json();
+      console.log('✅ Client added:', createdClient);
+      
+      navigate('/clients', { replace: true });
+    } catch (error) {
+      console.error('Error adding client:', error);
+      alert('Error adding client. Please try again.');
+    }
   };
 
   return (
@@ -53,7 +71,9 @@ const AddClient = () => {
       <h2 className="text-xl font-bold text-indigo-700 mb-6">👤 Add New Client</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Client Name  <span className="text-red-500">*</span></label>
+          <label className="block text-sm text-gray-600 mb-1">
+            Client Name <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             name="name"
@@ -64,7 +84,9 @@ const AddClient = () => {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Contact Email <span className="text-red-500">*</span></label>
+          <label className="block text-sm text-gray-600 mb-1">
+            Contact Email <span className="text-red-500">*</span>
+          </label>
           <input
             type="email"
             name="email"
@@ -75,7 +97,9 @@ const AddClient = () => {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Onboarded On <span className='text-red-500'>*</span></label>
+          <label className="block text-sm text-gray-600 mb-1">
+            Onboarded On <span className="text-red-500">*</span>
+          </label>
           <input
             type="date"
             name="onBoardedOn"
@@ -86,7 +110,9 @@ const AddClient = () => {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Client Rating (0-10)</label>
+          <label className="block text-sm text-gray-600 mb-1">
+            Client Rating (0–10)
+          </label>
           <input
             type="number"
             name="clientRating"
