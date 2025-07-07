@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import Slider from 'react-slick';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,42 +10,16 @@ import 'react-circular-progressbar/dist/styles.css';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+import { UserContext } from './UserContext'; // Adjust path as needed
+
 const UserHome = () => {
-  const [userName, setUserName] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const userId = decoded.id;
-
-        axios.get(`http://localhost:8080/api/users/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        .then(res => {
-          setUserName(res.data.userName); // 👈 Extracting username
-        })
-        .catch(err => {
-          console.error("❌ Failed to fetch user:", err);
-          setError('Could not load user info.');
-        });
-      } catch (err) {
-        console.error("❌ Token decoding failed:", err);
-        setError('Invalid token.');
-      }
-    }
-  }, []);
+  const { user, loadingUser, error } = useContext(UserContext);
 
   const highlights = [
     "🚀 MVP Released.",
     "📢 User Feedback Round.",
     "🎯 API Enhancement."
   ];
-
-  const clients = ["Client A", "Client B", "Client C", "Client D", "Client E"];
-  const projects = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
 
   const issueData = [
     { name: 'Low', value: 5 },
@@ -89,9 +61,10 @@ const UserHome = () => {
     pauseOnHover: false,
   };
 
+  if (loadingUser) return <div className="p-6">Loading user...</div>;
+
   return (
     <div className="pt-10 px-6">
-
       {/* 🔁 Announcement Banner */}
       <div className="w-full fixed top-16 left-0 z-40 bg-blue-100 border-y border-blue-300">
         <Slider {...carouselSettings}>
@@ -105,14 +78,14 @@ const UserHome = () => {
 
       {/* 👋 Welcome Banner */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl shadow mb-6">
-        <h2 className="text-2xl font-semibold">Hello, {userName || 'User'} 👋</h2>
+        <h2 className="text-2xl font-semibold">Hello, {user?.userName || 'User'} 👋</h2>
         <p className="text-sm text-white/90 mt-1">Welcome to your dashboard!</p>
         {error && <p className="text-sm text-red-300 mt-1">{error}</p>}
       </div>
 
       {/* 📊 Dashboard Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6 mb-6">
-        
+
         {/* Donut */}
         <div className="bg-white rounded-xl p-4 shadow">
           <h4 className="text-center text-md font-semibold mb-4">Project Completion</h4>

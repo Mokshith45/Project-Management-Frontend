@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
+import { UserContext } from '../userPages/UserContext'; // adjust path as needed
 import axios from 'axios';
-import {jwtDecode} from 'jwt-decode';
 
 const UserProfile = () => {
-  const [userData, setUserData] = useState(null);
+  const { user, setUser } = useContext(UserContext);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     oldPassword: '',
@@ -13,41 +13,13 @@ const UserProfile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-useEffect(() => {
-  const token = localStorage.getItem('token');
-  // console.log(token);
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      const userId = decoded.id;
-      // console.log(userId);
-
-        axios.get(`http://localhost:8080/api/users/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        .then((res) => {
-          console.log("✅ User data received from backend:", res.data); // 👉 LOG HERE
-          setUserData(res.data);
-        })
-        .catch((err) => {
-          console.error("❌ Failed to fetch user data:", err);
-          setError('Failed to fetch user data.');
-        });
-    } catch (err) {
-      console.error("❌ Token decoding failed:", err);
-      setError('Invalid token.');
-    }
-  }
-}, []);
-
-
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
     setSuccess('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const { oldPassword, newPassword, confirmPassword } = formData;
 
@@ -56,7 +28,7 @@ useEffect(() => {
       return;
     }
 
-    if (oldPassword !== userData?.password) {
+    if (oldPassword !== user?.password) {
       setError('Current password does not match.');
       return;
     }
@@ -71,30 +43,45 @@ useEffect(() => {
       return;
     }
 
-    // If all checks pass
-    const updated = { ...userData, password: newPassword };
-    setUserData(updated); // You may want to send a PUT request to backend later
+    try {
+      const token = localStorage.getItem('token');
 
-    setSuccess('Password changed successfully!');
-    setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      const updatedUser = { ...user, password: newPassword };
 
-    setTimeout(() => {
-      setSuccess('');
-      setShowModal(false);
-    }, 1500);
+      const res = await axios.put(
+        `http://localhost:8080/api/users/${user.id}`,
+        updatedUser,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setUser(res.data); // update global context
+      setSuccess('Password changed successfully!');
+      setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+
+      setTimeout(() => {
+        setSuccess('');
+        setShowModal(false);
+      }, 1500);
+
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update password.');
+    }
   };
 
-  if (!userData) return <div>Loading user profile...</div>;
+  if (!user) return <div>Loading user profile...</div>;
 
   return (
     <div className="bg-white shadow-md rounded-xl p-6 max-w-xl mx-auto mt-4">
       <h2 className="text-2xl font-bold text-indigo-700 mb-4">👩‍💼 User Profile</h2>
 
       <div className="space-y-4 text-gray-700">
-        <div><span className="font-semibold">User Id:</span> {userData.id}</div>
-        <div><span className="font-semibold">Name:</span> {userData.userName}</div>
-        <div><span className="font-semibold">Email:</span> {userData.email}</div>
-        <div><span className="font-semibold">Role:</span> {userData.userType}</div>
+        <div><span className="font-semibold">User Id:</span> {user.id}</div>
+        <div><span className="font-semibold">Name:</span> {user.userName}</div>
+        <div><span className="font-semibold">Email:</span> {user.email}</div>
+        <div><span className="font-semibold">Role:</span> {user.userType}</div>
       </div>
 
       <div className="mt-6">
