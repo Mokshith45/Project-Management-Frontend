@@ -1,7 +1,4 @@
 import React from 'react';
-import Slider from 'react-slick';
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,15 +9,7 @@ import 'react-circular-progressbar/dist/styles.css';
 
 const UserHome = () => {
   const auth = JSON.parse(localStorage.getItem('auth'));
-  const username = auth?.email?.split('@')[0] || 'User'; 
-  const highlights = [
-    "🚀 MVP Released.",
-    "📢 User Feedback Round.",
-    "🎯 API Enhancement."
-  ];
-
-  const clients = ["Client A", "Client B", "Client C", "Client D", "Client E"];
-  const projects = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+  const username = auth?.email?.split('@')[0] || 'User';
 
   const issueData = [
     { name: 'Low', value: 5 },
@@ -50,31 +39,8 @@ const UserHome = () => {
 
   const projectCompletion = 72;
 
-  const carouselSettings = {
-    autoplay: true,
-    autoplaySpeed: 3000,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: false,
-    dots: false,
-    pauseOnHover: false,
-  };
-
   return (
     <div className="pt-10 px-6">
-
-      {/* 🔁 Announcement Banner */}
-      <div className="w-full fixed top-16 left-0 z-40 bg-blue-100 border-y border-blue-300">
-        <Slider {...carouselSettings}>
-          {highlights.map((text, index) => (
-            <div key={index} className="text-center py-2 text-blue-900 font-medium">
-              {text}
-            </div>
-          ))}
-        </Slider>
-      </div>
 
       {/* 👋 Welcome Banner */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl shadow mb-6">
@@ -85,7 +51,7 @@ const UserHome = () => {
       {/* 📊 Dashboard Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6 mb-6">
         
-        {/* Donut */}
+        {/* Project Completion Donut */}
         <div className="bg-white rounded-xl p-4 shadow">
           <h4 className="text-center text-md font-semibold mb-4">Project Completion</h4>
           <div className="w-32 h-32 mx-auto">
@@ -101,7 +67,7 @@ const UserHome = () => {
           </div>
         </div>
 
-        {/* Pie */}
+        {/* Issue Severity Pie */}
         <div className="bg-white rounded-xl p-4 shadow">
           <h4 className="text-center text-md font-semibold mb-4">Issue Severity</h4>
           <ResponsiveContainer width="100%" height={200}>
@@ -125,7 +91,7 @@ const UserHome = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Line */}
+        {/* Highlights Over Time Line Chart */}
         <div className="bg-white rounded-xl p-4 shadow col-span-1 md:col-span-2">
           <h4 className="text-md font-semibold mb-4 text-center">Highlights Over Time</h4>
           <ResponsiveContainer width="100%" height={250}>
@@ -139,7 +105,7 @@ const UserHome = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Scatter */}
+        {/* Project Timeline Scatter Chart */}
         <div className="bg-white rounded-xl p-4 shadow col-span-1 md:col-span-2">
           <h4 className="text-md font-semibold mb-4 text-center">Project Timeline (Days per Phase)</h4>
           <ResponsiveContainer width="100%" height={250}>
