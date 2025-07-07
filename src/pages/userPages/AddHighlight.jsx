@@ -4,27 +4,33 @@ import { motion } from 'framer-motion';
 
 const AddHighlight = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ description: '', projectId: '' });
+
+  // ✅ Static project ID
+  const projectId = 101;
+
+  const [form, setForm] = useState({ description: '' });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // 🌐 Replace this with your actual backend endpoint
-    const res = await fetch("http://localhost:8080/api/highlights", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form)
-    });
 
-    if (res.ok) {
-      alert("Highlight added successfully!");
-      navigate("/user/myhighlights");
-    } else {
-      alert("Failed to add highlight");
-    }
+    const newHighlight = {
+      id: Date.now(), // unique ID
+      description: form.description,
+      createdOn: new Date().toISOString().split("T")[0],
+      projectId,
+    };
+
+    // 🔁 Save to localStorage
+    const old = JSON.parse(localStorage.getItem("highlights")) || [];
+    const updated = [...old, newHighlight];
+    localStorage.setItem("highlights", JSON.stringify(updated));
+
+    setForm({ description: '' });
+    navigate("/user/my-highlights");
   };
 
   return (
@@ -44,18 +50,6 @@ const AddHighlight = () => {
             className="w-full px-3 py-2 border border-gray-300 rounded"
             rows={3}
             placeholder="Enter project highlight"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Project ID</label>
-          <input
-            type="text"
-            name="projectId"
-            value={form.projectId}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
             required
           />
         </div>

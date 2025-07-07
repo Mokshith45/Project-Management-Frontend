@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {jwtDecode} from 'jwt-decode';
 
-const  UserProfile = () => {
-  const storedUser = JSON.parse(localStorage.getItem('auth'));
-
-const userData = {
-  name: storedUser?.name,
-  email: storedUser?.email,
-  role: storedUser?.role,
-  id: storedUser?.id,
-  password: storedUser?.password, // assuming you store it temporarily
-};
-
+const UserProfile = () => {
+  const [userData, setUserData] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     oldPassword: '',
@@ -19,6 +12,34 @@ const userData = {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+useEffect(() => {
+  const token = localStorage.getItem('token');
+  // console.log(token);
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      const userId = decoded.id;
+      // console.log(userId);
+
+        axios.get(`http://localhost:8080/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then((res) => {
+          console.log("✅ User data received from backend:", res.data); // 👉 LOG HERE
+          setUserData(res.data);
+        })
+        .catch((err) => {
+          console.error("❌ Failed to fetch user data:", err);
+          setError('Failed to fetch user data.');
+        });
+    } catch (err) {
+      console.error("❌ Token decoding failed:", err);
+      setError('Invalid token.');
+    }
+  }
+}, []);
+
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -35,7 +56,7 @@ const userData = {
       return;
     }
 
-    if (oldPassword !== userData.password) {
+    if (oldPassword !== userData?.password) {
       setError('Current password does not match.');
       return;
     }
@@ -50,9 +71,9 @@ const userData = {
       return;
     }
 
-    // All good → update password in localStorage
-    const updatedUser = { ...storedUser, password: newPassword };
-    localStorage.setItem('auth', JSON.stringify(updatedUser));
+    // If all checks pass
+    const updated = { ...userData, password: newPassword };
+    setUserData(updated); // You may want to send a PUT request to backend later
 
     setSuccess('Password changed successfully!');
     setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
@@ -63,15 +84,17 @@ const userData = {
     }, 1500);
   };
 
+  if (!userData) return <div>Loading user profile...</div>;
+
   return (
     <div className="bg-white shadow-md rounded-xl p-6 max-w-xl mx-auto mt-4">
       <h2 className="text-2xl font-bold text-indigo-700 mb-4">👩‍💼 User Profile</h2>
 
       <div className="space-y-4 text-gray-700">
         <div><span className="font-semibold">User Id:</span> {userData.id}</div>
-        <div><span className="font-semibold">Name:</span> {userData.name}</div>
+        <div><span className="font-semibold">Name:</span> {userData.userName}</div>
         <div><span className="font-semibold">Email:</span> {userData.email}</div>
-        <div><span className="font-semibold">Role:</span> {userData.role}</div>
+        <div><span className="font-semibold">Role:</span> {userData.userType}</div>
       </div>
 
       <div className="mt-6">
@@ -83,7 +106,7 @@ const userData = {
         </button>
       </div>
 
-      {/* 🔐 Modal */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow relative">

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Slider from 'react-slick';
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -9,10 +9,37 @@ import {
 } from 'recharts';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 const UserHome = () => {
-  const auth = JSON.parse(localStorage.getItem('auth'));
-  const username = auth?.email?.split('@')[0] || 'User'; 
+  const [userName, setUserName] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded.id;
+
+        axios.get(`http://localhost:8080/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+          setUserName(res.data.userName); // 👈 Extracting username
+        })
+        .catch(err => {
+          console.error("❌ Failed to fetch user:", err);
+          setError('Could not load user info.');
+        });
+      } catch (err) {
+        console.error("❌ Token decoding failed:", err);
+        setError('Invalid token.');
+      }
+    }
+  }, []);
+
   const highlights = [
     "🚀 MVP Released.",
     "📢 User Feedback Round.",
@@ -78,8 +105,9 @@ const UserHome = () => {
 
       {/* 👋 Welcome Banner */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl shadow mb-6">
-        <h2 className="text-2xl font-semibold">Hello, {username} 👋</h2>
+        <h2 className="text-2xl font-semibold">Hello, {userName || 'User'} 👋</h2>
         <p className="text-sm text-white/90 mt-1">Welcome to your dashboard!</p>
+        {error && <p className="text-sm text-red-300 mt-1">{error}</p>}
       </div>
 
       {/* 📊 Dashboard Widgets */}
