@@ -57,6 +57,7 @@ const UserProfile = () => {
       );
 
       setUser(res.data); // update global context
+      console.log('user id', res.data.id);
       setSuccess('Password changed successfully!');
       setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
 

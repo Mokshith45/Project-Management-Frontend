@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import AddIssue from './AddIssue'; // ✅ import the new component
+import axios from 'axios';
+import AddIssue from './AddIssue';
+import { UserContext } from './UserContext'; // ✅ updated as per your path
 
 const statusStyles = {
   Open: 'text-red-600 bg-red-100',
@@ -13,10 +15,7 @@ const containerVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      when: 'beforeChildren',
-      staggerChildren: 0.15,
-    },
+    transition: { when: 'beforeChildren', staggerChildren: 0.15 },
   },
 };
 
@@ -26,75 +25,89 @@ const itemVariants = {
 };
 
 const MyIssues = () => {
-  const currentProjectId = 101;
+  const { user, loadingUser, error: userError } = useContext(UserContext);
 
-  const [issues, setIssues] = useState([
-  {
-    id: 1,
-    title: 'Login page crashes on Safari',
-    description: 'Users are unable to login using Safari on iOS 16.',
-    createdOn: '2024-06-01',
-    severity: 'High',
-    status: 'Open',
-    projectId: currentProjectId,
-    createdBy: 'harika@user.com'
-  },
-  {
-    id: 2,
-    title: 'Slow dashboard loading',
-    description: 'Dashboard takes more than 10 seconds to load.',
-    createdOn: '2024-06-05',
-    severity: 'Medium',
-    status: 'Open',
-    projectId: currentProjectId,
-    createdBy: 'harika@user.com'
-  },
-  {
-    id: 3,
-    title: 'Typo in footer links',
-    description: 'Misspelling in "Terms & Conditions".',
-    createdOn: '2024-06-10',
-    severity: 'Low',
-    status: 'Closed',
-    projectId: currentProjectId,
-    createdBy: 'harika@user.com'
-  }
-]);
-
-
-
+  const [issues, setIssues] = useState([]);
+  const [projectId, setProjectId] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState('');
+
   const [newIssue, setNewIssue] = useState({
     title: '',
     description: '',
     severity: 'Medium',
     createdBy: '',
     status: 'Open',
-    projectId: currentProjectId,
+    projectId: null,
   });
+
+  // Load project and issues
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem('token');
+
+    axios.get(`http://localhost:8080/api/projects/lead/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      const project = res.data;
+      setProjectId(project.id);
+      setNewIssue((prev) => ({ ...prev, projectId: project.id, createdBy: user.email }));
+
+      // Fetch issues for the project
+      return axios.get(`http://localhost:8080/api/issues/project/${project.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    })
+    .then((res) => {
+      setIssues(res.data);
+    })
+    .catch((err) => {
+      console.error('Error fetching issues:', err);
+      setError('Failed to load issues.');
+    });
+  }, [user]);
 
   const handleChange = (e) => {
     setNewIssue({ ...newIssue, [e.target.name]: e.target.value });
   };
 
-  const handleAddIssue = (e) => {
-    e.preventDefault();
-    const newEntry = {
-      ...newIssue,
-      id: issues.length + 1,
-      createdOn: new Date().toISOString().split('T')[0],
-    };
-    setIssues([...issues, newEntry]);
+  const handleAddIssue = async (e) => {
+  e.preventDefault();
+
+  const token = localStorage.getItem('token');
+  const newEntry = {
+    ...newIssue,
+    createdOn: new Date().toISOString().split('T')[0],
+  };
+
+  try {
+    const res = await axios.post('http://localhost:8080/api/issues', newEntry, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setIssues([...issues, res.data]); // Add newly created issue to the UI
     setShowModal(false);
+
+    // Reset form
     setNewIssue({
       title: '',
       description: '',
       severity: 'Medium',
-      createdBy: '',
+      createdBy: user.email,
       status: 'Open',
-      projectId: currentProjectId,
+      projectId: projectId,
     });
-  };
+  } catch (err) {
+    console.error('Error adding issue:', err);
+    alert('Failed to submit issue.');
+  }
+};
+
+
+  if (loadingUser) return <div className="p-6">Loading user...</div>;
+  if (userError || error) return <div className="p-6 text-red-600">{userError || error}</div>;
 
   return (
     <motion.div
@@ -141,7 +154,6 @@ const MyIssues = () => {
         ))}
       </motion.div>
 
-      {/* ✅ Externalized Modal Form */}
       <AnimatePresence>
         <AddIssue
           show={showModal}

@@ -1,22 +1,7 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-
-const clientData = {
-  name: 'Acme Corp',
-  industry: 'Technology Consulting',
-  contact: {
-    name: 'Sarah Connor',
-    email: 'sarah.connor@acmecorp.com',
-    phone: '+1 555 123 4567'
-  },
-  address: {
-    street: '123 Silicon Street',
-    city: 'San Francisco',
-    state: 'CA',
-    zip: '94107'
-  },
-  activeProjects: ['Website Revamp', 'Internal Tool Migration']
-};
+import { UserContext } from './UserContext';
 
 const containerVariants = {
   hidden: { opacity: 0, y: 30 },
@@ -25,7 +10,7 @@ const containerVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      when: "beforeChildren",
+      when: 'beforeChildren',
       staggerChildren: 0.12,
     },
   },
@@ -37,6 +22,60 @@ const itemVariants = {
 };
 
 const MyClient = () => {
+  const { user, loadingUser, error: userError } = useContext(UserContext);
+  const [client, setClient] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem('token');
+
+    const fetchClientAndProjects = async () => {
+      try {
+        // Step 1: Get project by user
+        const projectRes = await axios.get(
+          `http://localhost:8080/api/projects/lead/${user.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const projectId = projectRes.data.id;
+
+        // Step 2: Get client by project
+        const clientRes = await axios.get(
+          `http://localhost:8080/api/clients/${projectId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const clientData = clientRes.data;
+        setClient(clientData);
+
+        // Step 3: Get all projects for this client
+        const projectListRes = await axios.get(
+          `http://localhost:8080/api/projects/client/${clientData.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setProjects(projectListRes.data);
+      } catch (err) {
+        console.error('Error fetching client/project info:', err);
+        setError('Failed to load client details.');
+      }
+    };
+
+    fetchClientAndProjects();
+  }, [user]);
+
+  if (loadingUser) return <div className="p-6">Loading user info...</div>;
+  if (userError || error) return <div className="p-6 text-red-600">{userError || error}</div>;
+  if (!client) return <div className="p-6">Loading client info...</div>;
+
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const options = { year: 'numeric', month: 'long' };
+    return `Working with us since ${date.toLocaleDateString(undefined, options)}`;
+  };
+
+  const renderStars = (rating) => '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+
   return (
     <motion.div
       className="pt-10 px-4 max-w-4xl mx-auto"
@@ -56,41 +95,38 @@ const MyClient = () => {
         variants={containerVariants}
       >
         <motion.div variants={itemVariants}>
-          <h3 className="text-lg font-semibold text-gray-800">Name</h3>
-          <p className="text-gray-700">{clientData.name}</p>
+          <h3 className="text-lg font-semibold text-gray-800">Client Name</h3>
+          <p className="text-gray-700">{client.name}</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <h3 className="text-lg font-semibold text-gray-800">Industry</h3>
-          <p className="text-gray-700">{clientData.industry}</p>
+          <h3 className="text-lg font-semibold text-gray-800">Client Email</h3>
+          <p className="text-gray-700">{client.email}</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <h3 className="text-lg font-semibold text-gray-800">Point of Contact</h3>
-          <p className="text-gray-700 space-y-1">
-            {clientData.contact.name} <br />
-            📧 {clientData.contact.email} <br />
-            📞 {clientData.contact.phone}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-800">Engagement</h3>
+          <p className="text-gray-700">{formatDate(client.onBoardedOn)}</p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <h3 className="text-lg font-semibold text-gray-800">Address</h3>
-          <p className="text-gray-700">
-            {clientData.address.street},<br />
-            {clientData.address.city}, {clientData.address.state} - {clientData.address.zip}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-800">Client Rating</h3>
+          <p className="text-yellow-500 text-lg">{renderStars(client.clientRating)}</p>
         </motion.div>
 
         <motion.div className="md:col-span-2" variants={itemVariants}>
-          <h3 className="text-lg font-semibold text-gray-800">Active Projects</h3>
-          <motion.ul className="list-disc pl-5 text-gray-700 text-sm">
-            {clientData.activeProjects.map((project, idx) => (
-              <motion.li key={idx} variants={itemVariants}>
-                {project}
-              </motion.li>
-            ))}
-          </motion.ul>
+          <h3 className="text-lg font-semibold text-gray-800">Projects with Us</h3>
+          {projects.length === 0 ? (
+            <p className="text-gray-500 italic">No projects found for this client.</p>
+          ) : (
+            <motion.ul className="list-disc pl-5 text-gray-700 text-sm">
+              {projects.map((project, idx) => (
+                <motion.li key={idx} variants={itemVariants}>
+                  {project.projectName || project.name || `Project ${idx + 1}`}
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
         </motion.div>
       </motion.div>
     </motion.div>

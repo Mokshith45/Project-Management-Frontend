@@ -1,37 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { UserContext } from './UserContext';
 
 const AddHighlight = () => {
   const navigate = useNavigate();
+  const { user, loadingUser, error: userError } = useContext(UserContext);
 
-  // ✅ Static project ID
-  const projectId = 101;
-
+  const [projectId, setProjectId] = useState(null);
   const [form, setForm] = useState({ description: '' });
+  const [error, setError] = useState('');
+
+  // ✅ Fetch projectId for logged-in user
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem('token');
+
+    axios
+      .get(`http://localhost:8080/api/projects/lead/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setProjectId(res.data.id);
+      })
+      .catch((err) => {
+        console.error('Error fetching project:', err);
+        setError('Unable to fetch project for the current user.');
+      });
+  }, [user]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!projectId) {
+      alert('Project not loaded yet.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    
     const newHighlight = {
-      id: Date.now(), // unique ID
       description: form.description,
-      createdOn: new Date().toISOString().split("T")[0],
+      createdOn: new Date().toISOString().split('T')[0],
       projectId,
     };
 
-    // 🔁 Save to localStorage
-    const old = JSON.parse(localStorage.getItem("highlights")) || [];
-    const updated = [...old, newHighlight];
-    localStorage.setItem("highlights", JSON.stringify(updated));
+    try {
+      await axios.post('http://localhost:8080/api/highlights', newHighlight, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    setForm({ description: '' });
-    navigate("/user/my-highlights");
+      navigate('/user/my-highlights');
+    } catch (err) {
+      console.error('Error submitting highlight:', err);
+      alert('Failed to submit highlight.');
+    }
   };
+
+  if (loadingUser) return <div className="p-6">Loading user...</div>;
+  if (userError || error) return <div className="p-6 text-red-600">{userError || error}</div>;
 
   return (
     <motion.div

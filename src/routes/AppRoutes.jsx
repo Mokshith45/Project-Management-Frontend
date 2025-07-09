@@ -26,7 +26,6 @@ import UserHome from '../pages/userPages/UserHome';
 import MyHighlights from '../pages/userPages/MyHighlights';
 import MyClient from '../pages/userPages/MyClient';
 import MyIssues from '../pages/userPages/MyIssues';
-import MyAchievements from '../pages/userPages/MyAchievements';
 import UserProfile from '../pages/userPages/UserProfile';
 import MyProject from '../pages/userPages/MyProject';
 import AddHighlight from '../pages/userPages/AddHighlight';
@@ -66,7 +65,6 @@ const AppRoutes = () => {
                 <Route path="/user/my-highlights" element={<MyHighlights />} />
                 <Route path="/user/my-client" element={<MyClient />} />
                 <Route path="/user/my-issues" element={<MyIssues />} />
-                <Route path="/user/my-achievements" element={<MyAchievements />} />
                 <Route path="/user/UserProfile" element={<UserProfile />} />
                 <Route path="/highlight/add" element={<AddHighlight />} />
               </>

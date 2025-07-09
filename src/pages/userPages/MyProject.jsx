@@ -1,40 +1,7 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-
-const sampleProject = {
-  id: 1,
-  projectName: "Website Redesign",
-  type: "Internal",
-  department: "Engineering",
-  status: "ACTIVE",
-  clientId: 101,
-  resourceIds: [201, 202],
-  highlightIds: [301],
-  contractId: 401,
-  projectRateCardId: 501,
-  budgets: 750000,
-  contactPersonId: 601,
-  managerId: 701,
-  projectLeadId: 801,
-};
-
-const highlights = [
-  {
-    id: 1,
-    description: 'Initial UI completed and approved',
-    date: '2024-05-12',
-  },
-  {
-    id: 2,
-    description: 'Integrated payment gateway successfully',
-    date: '2024-06-01',
-  },
-  {
-    id: 3,
-    description: 'Completed user feedback round 1',
-    date: '2024-06-25',
-  },
-];
+import { UserContext } from './UserContext'; // Update path based on your project structure
 
 const containerVariants = {
   hidden: { opacity: 0, y: 30 },
@@ -55,13 +22,57 @@ const itemVariants = {
 };
 
 const MyProject = () => {
+  const { user, loadingUser, error: userError } = useContext(UserContext);
+  const [project, setProject] = useState(null);
+  const [error, setError] = useState('');
+  const [leadName, setLeadName] = useState('');
+
+  useEffect(() => {
+  if (!user) return;
+
+  const token = localStorage.getItem('token');
+
+  axios.get(`http://localhost:8080/api/projects/lead/${user.id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(async (res) => {
+      const projectData = res.data;
+      setProject(projectData);
+
+      // Fetch the project lead name
+      try {
+        const leadRes = await axios.get(`http://localhost:8080/api/project-leads/project/${projectData.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // leadRes.data.user.name or adjust based on backend structure
+        const name = leadRes.data.userName ;
+        setLeadName(name);
+      } catch (leadErr) {
+        console.error("Failed to fetch project lead name:", leadErr);
+        setLeadName("Unavailable");
+      }
+    })
+    .catch(err => {
+      console.error("Failed to load project:", err);
+      setError("Failed to load project details.");
+    });
+}, [user]);
+
+
+  if (loadingUser) return <div className="p-6">Loading user info...</div>;
+  if (userError) return <div className="p-6 text-red-600">{userError}</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
+  if (!project) return <div className="p-6">Loading project...</div>;
+
   const {
     projectName,
     type,
     department,
     status,
-    budgets,
-  } = sampleProject;
+    budget,
+    projectLeadName,
+  } = project;
 
   return (
     <motion.div
@@ -79,12 +90,12 @@ const MyProject = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
         {[
-          { label: "Project Name", value: "Website Revamp" },
-          { label: "Type", value: "Internal" },
-          { label: "Department", value: "Technology" },
-          { label: "Status", value: "Active", color: "text-green-600" },
-          { label: "Budget", value: "₹5,00,000" },
-          { label: "Lead", value: "Harika" },
+          { label: "Project Name", value: projectName },
+          { label: "Type", value: type },
+          { label: "Department", value: department },
+          { label: "Status", value: status, color: status === "ACTIVE" ? "text-green-600" : "text-red-600" },
+          { label: "Budget", value: `₹${budget?.toLocaleString()}` },
+          { label: "Lead", value: leadName },
         ].map(({ label, value, color = "text-gray-800" }, index) => (
           <motion.div
             key={index}

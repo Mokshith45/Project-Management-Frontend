@@ -29,8 +29,7 @@ const userNavItems = [
   { path: '/user/my-project', label: 'My Project', icon: <FaBriefcase /> },
   { path: '/user/my-highlights', label: 'My Highlights', icon: <FaMedal /> },
   { path: '/user/my-client', label: 'My Client', icon: <FaBuilding /> },
-  { path: '/user/my-issues', label: 'My Issues', icon: <FaBug /> },
-  { path: '/user/my-achievements', label: 'My Achievements', icon: <FaTrophy /> },
+  { path: '/user/my-issues', label: 'My Issues', icon: <FaBug /> }
 ];
 
 const Sidebar = ({ userRole = 'admin' }) => {

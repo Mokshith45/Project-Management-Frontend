@@ -1,6 +1,7 @@
 // src/pages/userpages/AddIssue.jsx
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { UserContext } from './UserContext'; // ✅ use the correct path
 
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.85 },
@@ -9,6 +10,15 @@ const modalVariants = {
 };
 
 const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
+  const { user } = useContext(UserContext);
+  //console.log('AddIssue user:', user);
+
+  useEffect(() => {
+    if (user) {
+      onChange({ target: { name: 'createdBy', value: user.userName } }); // Auto-fill
+    }
+  }, [user]);
+
   if (!show) return null;
 
   return (
@@ -69,18 +79,19 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded"
               rows={3}
               placeholder="Describe the issue"
+              required
             />
           </div>
 
+          {/* 👇 Auto-filled from context, so just show it */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Created By</label>
             <input
               type="text"
               name="createdBy"
               value={formData.createdBy}
-              onChange={onChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded"
-              placeholder="Your name or email"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded"
             />
           </div>
 
