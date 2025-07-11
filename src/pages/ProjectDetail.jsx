@@ -37,6 +37,10 @@ const ProjectDetail = () => {
   const [budgetSpent, setBudgetSpent] = useState(0);
 
   const [budgetStatus, setBudgetStatus] = useState('');
+const [budgetBreakup, setBudgetBreakup] = useState({});
+const [projectRateMap, setProjectRateMap] = useState({});
+const [globalRateMap, setGlobalRateMap] = useState({});
+
 
 
   const toTitleCase = (str) =>
@@ -83,6 +87,50 @@ const ProjectDetail = () => {
 
         const allocatedRes = await axios.get(`http://localhost:8080/api/resources/project/${id}`, { headers });
         setAllocatedResources(allocatedRes.data || []);
+        // Fetch rate cards
+      const [projectRatesRes, globalRatesRes] = await Promise.all([
+        axios.get(`http://localhost:8080/api/ratecards/project/${id}`, { headers }),
+        axios.get(`http://localhost:8080/api/ratecards/global`, { headers })
+      ]);
+
+      const projectRates = projectRatesRes.data || [];
+      const globalRates = globalRatesRes.data || [];
+
+      // Convert rate cards to lookup maps
+      const projectRateObj = Object.fromEntries(
+      projectRates.map((r) => [r.level, r.rate])
+    );
+    const globalRateObj = Object.fromEntries(
+      globalRates.map((r) => [r.level, r.rate])
+    );
+
+    setProjectRateMap(projectRateObj);
+    setGlobalRateMap(globalRateObj);
+
+// Step 2: Compute budget breakup by resource duration
+const breakup = {};
+
+(allocatedRes.data || []).forEach((res) => {
+  const level = res.level;
+  const rate = projectRateMap[level] || globalRateMap[level] || 0;
+
+  const start = new Date(res.startDate);
+  const end = new Date(res.endDate);
+  const timeDiff = Math.abs(end - start);
+  const numDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // include both days
+
+  const cost = rate * numDays;
+
+  if (!breakup[level]) {
+    breakup[level] = { rate, quantity: 1, days: numDays, total: cost };
+  } else {
+    breakup[level].quantity += 1;
+    breakup[level].days += numDays;
+    breakup[level].total += cost;
+  }
+});
+
+setBudgetBreakup(breakup);
 
         // Budget quoted
         setBudgetQuoted(projectData.budget || 0);
@@ -90,6 +138,22 @@ const ProjectDetail = () => {
         // Budget spent
         const budgetSpentRes = await axios.get(`http://localhost:8080/api/projects/${id}/budget-spent`, { headers });
         setBudgetSpent(budgetSpentRes.data || 0);
+
+        // fetch users and their types
+        // const xx = await axios.get('http://localhost:8080/api/resources/project/' + id, { headers });
+        // // console.log(xx.data);
+
+
+        // const yy = await axios.get('http://localhost:8080/api/ratecards/project/' + id, { headers });
+        // // console.log(yy.data);
+
+        // const zz = await axios.get('http://localhost:8080/api/ratecards/global', { headers });
+        // console.log({
+        //   resources: xx.data,
+        //   ratecards: yy.data,
+        //   globalRatecards: zz.data
+        // });
+        
 
 
         // Compute open positions
@@ -118,6 +182,8 @@ const ProjectDetail = () => {
       setLoading(false);
     }
   }, [id]);
+
+
 
   if (loading) return <div className="text-center py-20 text-gray-500 text-lg">Loading...</div>;
   if (error) return <div className="text-center py-20 text-red-600 text-lg">{error}</div>;
@@ -187,7 +253,7 @@ const ProjectDetail = () => {
         {budgetStatus && (
             <div className="mt-2 text-sm font-medium">
                 {budgetStatus === 'exceeded' && (
-                <p className="text-red-600">⚠ Budget Exceeded by ${(budgetSpent - budgetQuoted).toLocaleString()}</p>
+                <p className="text-red-600">⚠ Budget Exceeded by  ${(budgetSpent - budgetQuoted).toLocaleString()}</p>
                 )}
                 {budgetStatus === 'under' && (
                 <p className="text-green-600">✅ Within Budget. Remaining: ${(budgetQuoted - budgetSpent).toLocaleString()}</p>
@@ -198,6 +264,66 @@ const ProjectDetail = () => {
             </div>
         )}
 
+            {/* Resource-wise Billing Summary */}
+            {allocatedResources.length > 0 && (
+              <div className="mt-10 bg-white border shadow rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-indigo-700 mb-4">📄 Resource-wise Billing Summary</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm border border-gray-200 rounded-xl">
+                    <thead className="bg-gray-100 text-gray-800">
+                      <tr>
+                        <th className="py-2 px-4 text-left">Resource</th>
+                        <th className="py-2 px-4 text-left">Level</th>
+                        <th className="py-2 px-4 text-left">Start Date</th>
+                        <th className="py-2 px-4 text-left">End Date</th>
+                        <th className="py-2 px-4 text-left">Days Worked</th>
+                        <th className="py-2 px-4 text-left">Rate/Day (₹)</th>
+                        <th className="py-2 px-4 text-left">Total (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allocatedResources.map((res) => {
+                        const rate = projectRateMap[res.level] || globalRateMap[res.level] || 0;
+                        const start = new Date(res.startDate);
+                        const end = new Date(res.endDate);
+                        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                        const total = rate * days;
+
+                        return (
+                          <tr key={res.id} className="border-t hover:bg-gray-50">
+                            <td className="py-2 px-4 font-medium">{res.resourceName}</td>
+                            <td className="py-2 px-4">{res.level}</td>
+                            <td className="py-2 px-4">{start.toLocaleDateString()}</td>
+                            <td className="py-2 px-4">{end.toLocaleDateString()}</td>
+                            <td className="py-2 px-4">{days}</td>
+                            <td className="py-2 px-4">₹ {rate.toLocaleString()}</td>
+                            <td className="py-2 px-4 font-semibold">₹ {total.toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="bg-gray-50 border-t font-semibold">
+                      <tr>
+                        <td colSpan="6" className="py-2 px-4 text-right">Grand Total:</td>
+                        <td className="py-2 px-4 text-indigo-800">
+                          ₹{' '}
+                          {allocatedResources.reduce((acc, res) => {
+                            const rate = projectRateMap[res.level] || globalRateMap[res.level] || 0;
+                            const start = new Date(res.startDate);
+                            const end = new Date(res.endDate);
+                            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                            return acc + rate * days;
+                          }, 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+
+      {/* Highlights and Issues Section */}
       {(highlights.length > 0 || issues.length > 0) && (
         <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Highlights Section */}
@@ -269,7 +395,7 @@ const ProjectDetail = () => {
                         <span className="font-semibold">Created By:</span> {item.createdBy}
                         </p>
                         <p>
-                        <span className="font-semibold">Created On:</span>{' '}
+                        <span className="font-semibold">Created On :</span>{' '}
                         {new Date(item.createdDate).toLocaleDateString()}
                         </p>
                     </div>
