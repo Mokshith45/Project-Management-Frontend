@@ -107,7 +107,7 @@ const [globalRateMap, setGlobalRateMap] = useState({});
     setProjectRateMap(projectRateObj);
     setGlobalRateMap(globalRateObj);
 
-// Step 2: Compute budget breakup by resource duration
+// Step 2: Compute budget breakup by resource duration testing
 const breakup = {};
 
 (allocatedRes.data || []).forEach((res) => {
