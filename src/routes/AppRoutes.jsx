@@ -29,6 +29,7 @@ import MyIssues from '../pages/userPages/MyIssues';
 import UserProfile from '../pages/userPages/UserProfile';
 import MyProject from '../pages/userPages/MyProject';
 import AddHighlight from '../pages/userPages/AddHighlight';
+import Resource from '../pages/userPages/Resource';
 
 
 
@@ -67,6 +68,7 @@ const AppRoutes = () => {
                 <Route path="/user/my-issues" element={<MyIssues />} />
                 <Route path="/user/UserProfile" element={<UserProfile />} />
                 <Route path="/highlight/add" element={<AddHighlight />} />
+                <Route path="/user/my-resouces" element={<Resource />} />
               </>
             )}
 

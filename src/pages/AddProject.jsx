@@ -1,28 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const clientsList = [
-  { value: '1', label: 'Acme Corp' },
-  { value: '2', label: 'Globex Inc' },
-  { value: 'others', label: 'Others' },
-];
-
-const projectLeadsList = [
-  { value: '101', label: 'Alice Johnson' },
-  { value: '102', label: 'Bob Smith' },
-];
-
-const steps = ['Basic Info', 'Client Details', 'Budget & SPOC'];
+const stepLabels = ['Basic Info', 'Client Details', 'Budget & SPOC'];
 
 const AddProject = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [clientsList, setClientsList] = useState([]);
+  const [projectLeadsList, setProjectLeadsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [contacts, setContacts] = useState([]);
+
 
   const [form, setForm] = useState({
     projectName: '',
     type: '',
     department: '',
-    status: 'INITIATED',
+    status: 'ACTIVE',
     client: '',
     newClientName: '',
     newClientEmail: '',
@@ -35,6 +30,63 @@ const AddProject = () => {
   });
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    axios.get('http://localhost:8080/api/contact-persons', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      const unassigned = res.data.filter((c) => c.projectId == null);
+      setContacts(unassigned);
+    })
+    .catch((err) => {
+      console.error('Error fetching contacts:', err);
+    });
+
+
+    const fetchClients = axios.get('http://localhost:8080/api/clients', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const fetchProjects = axios.get('http://localhost:8080/api/projects', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const fetchLeads = axios.get('http://localhost:8080/api/project-leads', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    
+    Promise.all([fetchClients, fetchLeads, fetchProjects])
+      .then(([clientsRes, leadsRes, projectsRes]) => {
+        const assignedLeadIds = new Set(projectsRes.data.map(p => p.projectLeadId));
+
+        const availableLeads = leadsRes.data.filter(lead => !assignedLeadIds.has(lead.id));
+
+        const leadsFormatted = availableLeads.map((lead) => ({
+          value: lead.id,
+          label: lead.userName,
+        }));
+        setProjectLeadsList(leadsFormatted);
+
+        const clientsFormatted = clientsRes.data.map((c) => ({
+          value: c.id,
+          label: c.name,
+        }));
+        clientsFormatted.push({ value: 'others', label: 'Others' });
+        setClientsList(clientsFormatted);
+
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching data:', err);
+        alert('Failed to load form data');
+        setLoading(false);
+      });
+
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,10 +112,7 @@ const AddProject = () => {
     }
 
     if (step === 2) {
-      if (
-        form.totalBudget &&
-        (isNaN(form.totalBudget) || Number(form.totalBudget) < 0)
-      ) {
+      if (form.totalBudget && (isNaN(form.totalBudget) || Number(form.totalBudget) < 0)) {
         errs.totalBudget = 'Must be a positive number';
       }
     }
@@ -79,56 +128,48 @@ const AddProject = () => {
   const handlePrev = () => setStep(step - 1);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateStep()) return;
+  e.preventDefault();
+  const token = localStorage.getItem('token');
+  if (!validateStep()) return;
 
-    const finalClient =
-      form.client === 'others'
-        ? {
-            name: form.newClientName,
-            email: form.newClientEmail,
-            onboardedOn: form.onboardedOn,
-            rating: Number(form.rating),
-          }
-        : form.client;
-
-    const projectData = {
-      projectName: form.projectName,
-      type: form.type,
-      department: form.department,
-      status: form.status,
-      client: finalClient,
-      budgets: form.totalBudget ? Number(form.totalBudget) : null,
-      contactPerson: {
-        name: form.contactName,
-        phone: form.contactPhone,
-      },
-      projectLeadId: form.projectLead ? Number(form.projectLead) : null,
-    };
-
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(projectData),
-      });
-
-      if (!res.ok) throw new Error('Failed to save project');
-
-      // Success: Redirect to project list
-      navigate('/projects');
-    } catch (error) {
-      alert('Error submitting project: ' + error.message);
-    }
+  const projectPayload = {
+    projectName: form.projectName,
+    type: form.type,
+    department: form.department,
+    // status: form.status,
+    status: 'ACTIVE', 
+    budget: form.totalBudget ? Number(form.totalBudget) : 0,
+    clientId: form.client !== 'others' ? Number(form.client) : 0, // Use directly
+    projectLeadId: form.projectLead ? Number(form.projectLead) : 0,
+    projectRateCardId: null
   };
+
+  console.log('📦 Final Payload:', projectPayload);
+
+  try {
+    await axios.post('http://localhost:8080/api/projects', projectPayload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    navigate('/projects');
+  } catch (err) {
+    console.error('❌ Error submitting project:', err);
+    alert('Failed to create project');
+  }
+};
+
+
+
+
+
+
+  if (loading) return <div className="p-6">Loading form data...</div>;
 
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-bold text-indigo-700 mb-4">Add New Project</h2>
 
-      {/* Step Progress UI */}
       <div className="flex items-center mb-6 space-x-2 text-sm text-gray-600">
-        {steps.map((s, i) => (
+        {stepLabels.map((s, i) => (
           <div
             key={i}
             className={`px-3 py-1 rounded-full border ${
@@ -140,13 +181,12 @@ const AddProject = () => {
         ))}
       </div>
 
-      <form className='space-y-4'>
-        {/* Step 0: Basic Info */}
+      <form className="space-y-4">
+        {/* Step 0 */}
         {step === 0 && (
           <>
-            {/* Project Name */}
             <div>
-              <label className="block text-sm mb-1">Project Name <span className='text-red-500'>*</span></label>
+              <label className="block text-sm mb-1">Project Name *</label>
               <input
                 name="projectName"
                 value={form.projectName}
@@ -154,10 +194,8 @@ const AddProject = () => {
                 className={`w-full border px-3 py-2 rounded-md ${errors.projectName ? 'border-red-500' : 'border-gray-300'}`}
               />
             </div>
-
-            {/* Type */}
             <div>
-              <label className="block text-sm mb-1">Type <span className='text-red-500'>*</span></label>
+              <label className="block text-sm mb-1">Type *</label>
               <select
                 name="type"
                 value={form.type}
@@ -165,15 +203,12 @@ const AddProject = () => {
                 className={`w-full border px-3 py-2 rounded-md ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
               >
                 <option value="">-- Select Type --</option>
-                <option value="Development">Development</option>
-                <option value="Consulting">Consulting</option>
-                <option value="Support">Support</option>
+                <option value="TFR">TFR</option>
+                <option value="TNM">TNM</option>
               </select>
             </div>
-
-            {/* Department */}
             <div>
-              <label className="block text-sm mb-1">Department <span className='text-red-500'>*</span></label>
+              <label className="block text-sm mb-1">Department *</label>
               <select
                 name="department"
                 value={form.department}
@@ -188,30 +223,27 @@ const AddProject = () => {
                 <option value="Banking">Banking</option>
               </select>
             </div>
-
-            {/* Status dropdown */}
             <div>
-            <label className="block text-sm mb-1">Status<span className='text-red-500'>*</span></label>
-                <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleChange}
-                    className={`w-full border px-3 py-2 rounded-md ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
-                >
-                    <option value="Initiated">Initiated</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Completed">Completed</option>
-                    <option value="On Hold">On Hold</option>
-                </select>
+              <label className="block text-sm mb-1">Status *</label>
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className={`w-full border px-3 py-2 rounded-md ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="ON_HOLD">ON_HOLD</option>
+              </select>
             </div>
           </>
         )}
 
-        {/* Step 1: Client Details */}
+        {/* Step 1 */}
         {step === 1 && (
           <>
             <div>
-              <label className="block text-sm mb-1">Client <span className='text-red-500'>*</span></label>
+              <label className="block text-sm mb-1">Client *</label>
               <select
                 name="client"
                 value={form.client}
@@ -224,11 +256,10 @@ const AddProject = () => {
                 ))}
               </select>
             </div>
-
             {form.client === 'others' && (
               <>
                 <div>
-                  <label className="block text-sm mb-1">New Client Name <span className='text-red-500'>*</span></label>
+                  <label className="block text-sm mb-1">New Client Name *</label>
                   <input
                     name="newClientName"
                     value={form.newClientName}
@@ -236,9 +267,8 @@ const AddProject = () => {
                     className={`w-full border px-3 py-2 rounded-md ${errors.newClientName ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm mb-1">Email <span className='text-red-500'>*</span></label>
+                  <label className="block text-sm mb-1">Email *</label>
                   <input
                     type="email"
                     name="newClientEmail"
@@ -247,9 +277,8 @@ const AddProject = () => {
                     className={`w-full border px-3 py-2 rounded-md ${errors.newClientEmail ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm mb-1">Onboarded On <span className='text-red-500'>*</span></label>
+                  <label className="block text-sm mb-1">Onboarded On *</label>
                   <input
                     type="date"
                     name="onboardedOn"
@@ -258,9 +287,8 @@ const AddProject = () => {
                     className={`w-full border px-3 py-2 rounded-md ${errors.onboardedOn ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm mb-1">Rating (1-5) <span className='text-red-500'>*</span></label>
+                  <label className="block text-sm mb-1">Rating (1-5) *</label>
                   <input
                     name="rating"
                     value={form.rating}
@@ -273,31 +301,43 @@ const AddProject = () => {
           </>
         )}
 
-        {/* Step 2: Budget & SPOC */}
+        {/* Step 2 */}
         {step === 2 && (
           <>
             <div>
-              <label className="block text-sm mb-1">Budget (₹) <span className='text-red-500'>*</span></label>
+              <label className="block text-sm mb-1">Budget (₹)</label>
               <input
                 name="totalBudget"
                 value={form.totalBudget}
                 onChange={handleChange}
                 className={`w-full border px-3 py-2 rounded-md ${errors.totalBudget ? 'border-red-500' : 'border-gray-300'}`}
               />
-              {errors.totalBudget && (
-                <p className="text-sm text-red-600">{errors.totalBudget}</p>
-              )}
+              {errors.totalBudget && <p className="text-sm text-red-600">{errors.totalBudget}</p>}
             </div>
-
             <div>
-              <label className="block text-sm mb-1">Client SPOC Name</label>
-              <input
-                name="contactName"
-                value={form.contactName}
-                onChange={handleChange}
-                className="w-full border px-3 py-2 rounded-md border-gray-300"
-              />
-            </div>
+            <label className="block text-sm mb-1">Client SPOC Name</label>
+            <select
+              name="contactName"
+              value={form.contactName}
+              onChange={(e) => {
+                const selectedName = e.target.value;
+                const selectedContact = contacts.find(c => c.name === selectedName);
+                setForm({
+                  ...form,
+                  contactName: selectedContact?.name || '',
+                  contactPhone: selectedContact?.phone || ''
+                });
+              }}
+              className="w-full border px-3 py-2 rounded-md border-gray-300"
+            >
+              <option value="">-- Select Contact Person --</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.name}>
+                  {contact.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
             <div>
               <label className="block text-sm mb-1">Client SPOC Phone</label>
@@ -308,7 +348,6 @@ const AddProject = () => {
                 className="w-full border px-3 py-2 rounded-md border-gray-300"
               />
             </div>
-
             <div>
               <label className="block text-sm mb-1">Assign Project Lead</label>
               <select
@@ -337,25 +376,23 @@ const AddProject = () => {
               ⬅ Back
             </button>
           )}
-
-            {step < 2 ? (
+          {step < 2 ? (
             <button
-                type="button"
-                onClick={handleNext}
-                className="ml-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"
+              type="button"
+              onClick={handleNext}
+              className="ml-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm"
             >
-                Next ➡
+              Next ➡
             </button>
-            ) : (
+          ) : (
             <button
-                type="button" // Not a submit type to prevent accidental submission
-                onClick={handleSubmit}
-                className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+              type="button"
+              onClick={handleSubmit}
+              className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
             >
-             Submit
+              Submit
             </button>
-            )}
-
+          )}
         </div>
       </form>
     </div>

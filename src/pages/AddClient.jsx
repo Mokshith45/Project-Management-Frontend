@@ -37,15 +37,15 @@ const AddClient = () => {
       name: form.name,
       email: form.email,
       onBoardedOn: form.onBoardedOn,
-      clientRating: form.clientRating ? Number(form.clientRating) : null,
+      clientRating: form.clientRating ? Number(form.clientRating) : 0,
     };
 
     try {
-      const token = localStorage.getItem('jwtToken');
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8080/api/clients', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(clientData),
@@ -58,7 +58,7 @@ const AddClient = () => {
 
       const createdClient = await response.json();
       console.log('✅ Client added:', createdClient);
-      
+
       navigate('/clients', { replace: true });
     } catch (error) {
       console.error('Error adding client:', error);

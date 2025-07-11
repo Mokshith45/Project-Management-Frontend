@@ -2,49 +2,59 @@ import React, { useContext, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import AddIssue from './AddIssue';
-import { UserContext } from './UserContext'; // ✅ updated as per your path
+import { UserContext } from './UserContext';
+import EditIssue from './EditIssue';
+
 
 const statusStyles = {
-  Open: 'text-red-600 bg-red-100',
-  'In Progress': 'text-yellow-600 bg-yellow-100',
-  Closed: 'text-green-600 bg-green-100',
+  OPEN: 'bg-red-100 text-red-800',
+  IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+  RESOLVED: 'bg-blue-100 text-blue-800',
+  CLOSED: 'bg-green-100 text-green-800',
 };
 
+const severityStyles = {
+  LOW: 'bg-green-100 text-green-800',
+  MEDIUM: 'bg-yellow-100 text-yellow-800',
+  HIGH: 'bg-orange-100 text-orange-800',
+  URGENT: 'bg-red-100 text-red-800',
+};
+
+
 const containerVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { when: 'beforeChildren', staggerChildren: 0.15 },
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.15 },
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
 };
 
 const MyIssues = () => {
   const { user, loadingUser, error: userError } = useContext(UserContext);
-
+  const [name, setName] = useState('');
   const [issues, setIssues] = useState([]);
   const [projectId, setProjectId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
+  const [editModal, setEditModal] = useState(false);
+  const [editIssueData, setEditIssueData] = useState(null);
+
 
   const [newIssue, setNewIssue] = useState({
     title: '',
     description: '',
     severity: 'Medium',
     createdBy: '',
-    status: 'Open',
+    status: 'OPEN',
     projectId: null,
   });
 
-  // Load project and issues
   useEffect(() => {
     if (!user) return;
-
     const token = localStorage.getItem('token');
 
     axios.get(`http://localhost:8080/api/projects/lead/${user.id}`, {
@@ -53,16 +63,16 @@ const MyIssues = () => {
     .then((res) => {
       const project = res.data;
       setProjectId(project.id);
-      setNewIssue((prev) => ({ ...prev, projectId: project.id, createdBy: user.email }));
-
-      // Fetch issues for the project
+      setNewIssue(prev => ({
+        ...prev,
+        projectId: project.id,
+        createdBy: user.name,
+      }));
       return axios.get(`http://localhost:8080/api/issues/project/${project.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
     })
-    .then((res) => {
-      setIssues(res.data);
-    })
+    .then((res) => setIssues(res.data))
     .catch((err) => {
       console.error('Error fetching issues:', err);
       setError('Failed to load issues.');
@@ -73,51 +83,78 @@ const MyIssues = () => {
     setNewIssue({ ...newIssue, [e.target.name]: e.target.value });
   };
 
-  const handleAddIssue = async (e) => {
-  e.preventDefault();
+  const handleEditClick = (issue) => {
+    setEditIssueData(issue);
+    setEditModal(true);
+};
 
+const handleUpdateIssue = async (e) => {
+  e.preventDefault();
   const token = localStorage.getItem('token');
-  const newEntry = {
-    ...newIssue,
-    createdOn: new Date().toISOString().split('T')[0],
-  };
 
   try {
-    const res = await axios.post('http://localhost:8080/api/issues', newEntry, {
+    const res = await axios.put(`http://localhost:8080/api/issues/${editIssueData.id}`, editIssueData, {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    setIssues([...issues, res.data]); // Add newly created issue to the UI
-    setShowModal(false);
-
-    // Reset form
-    setNewIssue({
-      title: '',
-      description: '',
-      severity: 'Medium',
-      createdBy: user.email,
-      status: 'Open',
-      projectId: projectId,
-    });
+    const updated = issues.map((iss) => (iss.id === res.data.id ? res.data : iss));
+    setIssues(updated);
+    setEditModal(false);
   } catch (err) {
-    console.error('Error adding issue:', err);
-    alert('Failed to submit issue.');
+    console.error('Update failed:', err);
+    alert('Failed to update issue');
   }
 };
 
+
+
+  const handleAddIssue = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    const newEntry = {
+      ...newIssue,
+      createdOn: new Date().toISOString().split('T')[0],
+    };
+
+    try {
+      const res = await axios.post('http://localhost:8080/api/issues', newEntry, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setIssues([...issues, res.data]);
+      setShowModal(false);
+      setNewIssue({
+        title: '',
+        description: '',
+        severity: 'Medium',
+        createdBy: user.email,
+        status: 'OPEN',
+        projectId: projectId,
+      });
+    } catch (err) {
+      console.error('Error adding issue:', err);
+      alert('Failed to submit issue.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`http://localhost:8080/api/issues/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setIssues(issues.filter((issue) => issue.id !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
 
   if (loadingUser) return <div className="p-6">Loading user...</div>;
   if (userError || error) return <div className="p-6 text-red-600">{userError || error}</div>;
 
   return (
-    <motion.div
-      className="pt-10 px-6 max-w-4xl mx-auto"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div className="flex justify-between items-center mb-6" variants={itemVariants}>
-        <h2 className="text-2xl font-bold text-indigo-700">🐞 My Project Issues</h2>
+    <motion.div className="p-6 max-w-7xl mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {/* Header */}
+      <motion.div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-indigo-700">My Project Issues</h2>
         <motion.button
           onClick={() => setShowModal(true)}
           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
@@ -128,32 +165,67 @@ const MyIssues = () => {
         </motion.button>
       </motion.div>
 
-      <motion.div className="space-y-4">
+      {/* Grid Cards */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
         {issues.map((issue) => (
           <motion.div
             key={issue.id}
-            className="bg-white border border-indigo-100 rounded-lg shadow p-4"
-            variants={itemVariants}
+            variants={cardVariants}
+            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 relative hover:shadow-xl transition-all"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">{issue.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{issue.description}</p>
-                <p className="text-xs text-gray-500 mt-1">📅 Created On: {issue.createdOn}</p>
-                <p className="text-xs text-gray-500">🔥 Severity: {issue.severity}</p>
-                <p className="text-xs text-gray-500">📁 Project ID: {issue.projectId}</p>
-                <p className="text-xs text-gray-500">👤 Created By: {issue.createdBy}</p>
-              </div>
-              <span
-                className={`px-3 py-1 text-sm font-medium rounded-full h-fit ${statusStyles[issue.status]}`}
+            <div className="mb-2 text-sm text-gray-500 font-medium"></div>
+            <div className="flex justify-between items-center mt-2">
+            <p className="text-md text-black-600 "><strong>{issue.description}</strong></p>
+            <span
+              className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${statusStyles[issue.status]}`}
+            >
+              {issue.status.replace('_', ' ')}
+            </span>
+          </div>
+
+            <p className="text-sm mt-2">
+            <strong>Severity:</strong>{' '}
+            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${severityStyles[issue.severity]}`}>
+              {issue.severity}
+            </span>
+            </p>
+
+            <p className="text-sm text-gray-500 mt-2">
+              <strong>Created:</strong> {issue.createdDate || issue.createdOn}
+            </p>
+            <p className="text-sm text-gray-500">
+              <strong>Created By:</strong> {issue.createdBy}
+            </p>
+            <p className="text-sm text-gray-500">
+              <strong>Project ID:</strong> {issue.projectId}
+            </p>  
+
+            {/* Buttons */}
+            <div className="mt-4 flex gap-3">
+              <button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
+              onClick={() => handleEditClick(issue)}
+            >
+              Edit
+            </button>
+
+              <button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
+                onClick={() => handleDelete(issue.id)}
               >
-                {issue.status}
-              </span>
+                Delete
+              </button>
             </div>
           </motion.div>
         ))}
       </motion.div>
 
+      {/* Modal */}
       <AnimatePresence>
         <AddIssue
           show={showModal}
@@ -163,7 +235,20 @@ const MyIssues = () => {
           onChange={handleChange}
         />
       </AnimatePresence>
+      <AnimatePresence>
+      <EditIssue
+        show={editModal}
+        onClose={() => setEditModal(false)}
+        formData={editIssueData}
+        onChange={(e) =>
+          setEditIssueData({ ...editIssueData, [e.target.name]: e.target.value })
+        }
+        onSubmit={handleUpdateIssue}
+      />
+    </AnimatePresence>
+
     </motion.div>
+    
   );
 };
 

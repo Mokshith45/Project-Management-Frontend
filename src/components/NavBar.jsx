@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FaUserCircle } from 'react-icons/fa';
 import { FiSearch, FiLogOut } from 'react-icons/fi';
 import { BsPerson } from 'react-icons/bs';
-import BxaLogo from '../assets/logg.png'; // Ensure the path is correct
+import BxaLogo from '../assets/logobxa.png'; // Ensure the path is correct
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ const Navbar = () => {
       
       {/* Logo */}
       <Link to="/" className="flex items-center gap-3 pl-1 cursor-pointer hover:opacity-90 transition">
-        <img src={BxaLogo} alt="Logo" className="h-40 md:h-40 w-52 md:w-72 object-contain ml-[-28px]" />
+        <img src={BxaLogo } alt="Logo" className="h-40 md:h-40 w-52 md:w-72 object-contain ml-[-28px]" />
       </Link>
 
       {/* Search */}
