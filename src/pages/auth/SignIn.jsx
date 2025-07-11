@@ -5,7 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import BxaLogo from '../../assets/logobxa.png';
 import { login } from '../../api/auth';
 import { jwtDecode } from 'jwt-decode';
-import BgVideo from '../../assets/loading.mp4'; // 🎥 Add your video here
+import BgVideo from '../../assets/loading.mp4'; 
+
 
 const SignIn = () => {
   const [form, setForm] = useState({ email: '', password: '' });

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios'; // ✅ Axios for API calls
+import axios from 'axios';
 
+// Animation variants for entry
 const containerVariants = {
   hidden: {},
   show: {
@@ -20,30 +21,36 @@ const cardVariants = {
 const Clients = () => {
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true); // For optional loader
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🔁 Fetch clients from API on component mount
+  // Capitalize first letter of each word in client name
+  const capitalizeName = (name) =>
+    name
+      .toLowerCase()
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+  // 🔁 Fetch all clients on mount
   useEffect(() => {
     const fetchClients = async () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get('http://localhost:8080/api/clients', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setClients(response.data);
+        setClients(response.data || []);
       } catch (err) {
+        console.error(err);
         setError('Failed to load clients');
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchClients();
   }, []);
-  
 
   return (
     <motion.div
@@ -52,7 +59,7 @@ const Clients = () => {
       animate="show"
       variants={containerVariants}
     >
-      {/* Header + Button */}
+      {/* Header */}
       <motion.div
         className="flex justify-between items-center mb-8"
         initial={{ opacity: 0, y: -20 }}
@@ -70,7 +77,7 @@ const Clients = () => {
         </motion.button>
       </motion.div>
 
-      {/* Loading/Error State */}
+      {/* Main Content */}
       {loading ? (
         <p className="text-gray-600">Loading clients...</p>
       ) : error ? (
@@ -78,7 +85,6 @@ const Clients = () => {
       ) : clients.length === 0 ? (
         <p className="text-gray-600">No clients found.</p>
       ) : (
-        // Clients Grid
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {clients.map((client) => (
             <motion.div
@@ -87,27 +93,21 @@ const Clients = () => {
               whileHover={{ scale: 1.03 }}
               className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-gray-200"
             >
-              <div className="flex items-center gap-4 mb-4">
-                <img
-                  src={client.logo || 'https://via.placeholder.com/40'}
-                  alt="Logo"
-                  className="w-10 h-10 rounded-full"
-                />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
-                  <p className="text-sm text-gray-500">{client.contact}</p>
-                </div>
-              </div>
-              <div className="text-sm text-gray-600">
-                <p><strong>Projects:</strong> {client.totalProjects}</p>
-                <p><strong>Total Spend:</strong> {client.totalSpend}</p>
-              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {capitalizeName(client.name)}
+              </h3>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Onboarded On:</strong> {client.onBoardedOn}
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                <strong>Client Rating:</strong> {client.clientRating || 'N/A'}
+              </p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition-colors"
-                onClick={() => navigate(`/clients/${client.id}/projects`)}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition-colors"
+                onClick={() => navigate(`/clients/${client.id}`)}
               >
-                View Projects
+                View Details
               </motion.button>
             </motion.div>
           ))}
