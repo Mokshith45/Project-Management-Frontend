@@ -12,6 +12,7 @@
   "dependencies": {
     "aos": "^2.3.4",
     "axios": "^1.10.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.23.0",
     "jwt-decode": "^4.0.0",
     "lottie-react": "^2.4.1",

@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-
-// Sample initial data for roles
-const initialRateCard = [
-  { id: 1, role: 'Junior Developer', rate: 1500 },
-  { id: 2, role: 'Mid Developer', rate: 2500 },
-  { id: 3, role: 'Senior Developer', rate: 3500 },
-  { id: 4, role: 'Advanced Developer', rate: 4500 },
-  { id: 5, role: 'Expert', rate: 7000 },
-];
+import axios from 'axios';
 
 // Animation config
 const rowVariants = {
@@ -16,54 +8,136 @@ const rowVariants = {
   visible: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, type: 'spring', stiffness: 80 },
+    transition: { delay: i * 0.05, type: 'spring', stiffness: 80 },
   }),
 };
 
-// Each project includes a client name
-const projectsList = [
-  { id: 'p1', name: 'Compliance Portal', client: 'Morgan Stanley' },
-  { id: 'p2', name: 'Website Revamp', client: 'Goldman sachs' },
-  { id: 'p3', name: 'HR Automation', client: 'JP Morgan' },
-];
-
 const RateCards = () => {
-  const [globalRates, setGlobalRates] = useState(initialRateCard);
+  const [globalRates, setGlobalRates] = useState([]);
+  const [projectsList, setProjectsList] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [projectRates, setProjectRates] = useState([]);
 
-  const [projectRateCards, setProjectRateCards] = useState(() => {
-    const initial = {};
-    projectsList.forEach((project) => {
-      initial[project.id] = initialRateCard.map((item) => ({ ...item }));
+  const token = localStorage.getItem('token');
+  const axiosConfig = {
+    headers: { Authorization: `Bearer ${token}` },
+  };
+
+  // 🟡 Fetch global rate card and store as master template
+  const fetchGlobalRates = async () => {
+    try {
+      const res = await axios.get('http://localhost:8080/api/ratecards/global', axiosConfig);
+      setGlobalRates(res.data);
+    } catch (err) {
+      console.error('Failed to load global rate card:', err);
+    }
+  };
+
+  // 🟡 Fetch all projects, then fetch client names for each
+  const fetchProjectsList = async () => {
+    try {
+      const res = await axios.get('http://localhost:8080/api/projects', axiosConfig);
+      const projects = res.data;
+
+      const enriched = await Promise.all(
+        projects.map(async (project) => {
+          try {
+            const clientRes = await axios.get(
+              `http://localhost:8080/api/clients/${project.clientId}`,
+              axiosConfig
+            );
+            return {
+              ...project,
+              client: clientRes.data.name || 'N/A',
+            };
+          } catch {
+            return { ...project, client: 'Unknown' };
+          }
+        })
+      );
+
+      setProjectsList(enriched);
+      if (enriched.length > 0) setSelectedProjectId(enriched[0].id);
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
+    }
+  };
+
+  // 🔁 Merge global template with project-specific values
+  const mergeProjectRatesWithGlobal = (projectRatesFromAPI) => {
+    return globalRates.map((global) => {
+      const match = projectRatesFromAPI.find((p) => p.level === global.level);
+      return {
+        id: match?.id || null,
+        level: global.level,
+        rate: match?.rate || 0,
+      };
     });
-    return initial;
-  });
+  };
 
-  const [selectedProjectId, setSelectedProjectId] = useState(projectsList[0].id);
+  // 🟡 Fetch project-specific rate card and normalize
+  const fetchProjectRates = async (projectId) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8080/api/ratecards/project/${projectId}`,
+        axiosConfig
+      );
+      const mergedRates = mergeProjectRatesWithGlobal(res.data);
+      setProjectRates(mergedRates);
+    } catch (err) {
+      console.error('Failed to load project rate card:', err);
+      // fallback: show all global levels with 0
+      setProjectRates(globalRates.map((g) => ({ ...g, rate: 0 })));
+    }
+  };
 
-  const selectedProject = projectsList.find(p => p.id === selectedProjectId);
+  useEffect(() => {
+    fetchGlobalRates();
+    fetchProjectsList();
+  }, []);
 
-  const handleGlobalRateChange = (id, newRate) => {
-    const updated = globalRates.map((item) =>
-      item.id === id ? { ...item, rate: newRate } : item
+  useEffect(() => {
+    if (selectedProjectId && globalRates.length > 0) {
+      fetchProjectRates(selectedProjectId);
+    }
+  }, [selectedProjectId, globalRates]);
+
+  // 🔧 Handlers
+  const handleGlobalRateChange = (level, newRate) => {
+    setGlobalRates((prev) =>
+      prev.map((item) => (item.level === level ? { ...item, rate: newRate } : item))
     );
-    setGlobalRates(updated);
   };
 
-  const handleProjectRateChange = (id, newRate) => {
-    setProjectRateCards((prev) => ({
-      ...prev,
-      [selectedProjectId]: prev[selectedProjectId].map((item) =>
-        item.id === id ? { ...item, rate: newRate } : item
-      ),
-    }));
+  const handleProjectRateChange = (level, newRate) => {
+    setProjectRates((prev) =>
+      prev.map((item) => (item.level === level ? { ...item, rate: newRate } : item))
+    );
   };
 
-  const saveGlobalRate = () => {
-    console.log('Global rate card saved:', globalRates);
+  // 💾 Save handlers
+  const saveGlobalRate = async () => {
+    try {
+      await axios.post('http://localhost:8080/api/ratecards/global', globalRates, axiosConfig);
+      alert('Global rate card saved!');
+    } catch (err) {
+      console.error('Failed to save global rates:', err);
+      alert('Error saving global rate card.');
+    }
   };
 
-  const saveProjectRate = () => {
-    console.log(`Rate card for project ${selectedProject.name} saved:`, projectRateCards[selectedProjectId]);
+  const saveProjectRate = async () => {
+    try {
+      await axios.post(
+        `http://localhost:8080/api/ratecards/project/${selectedProjectId}`,
+        projectRates,
+        axiosConfig
+      );
+      alert('Project rate card saved!');
+    } catch (err) {
+      console.error('Failed to save project rates:', err);
+      alert('Error saving project rate card.');
+    }
   };
 
   return (
@@ -87,26 +161,26 @@ const RateCards = () => {
           >
             <thead className="bg-indigo-50 text-indigo-700">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium">Role</th>
-                <th className="px-6 py-3 text-left text-sm font-medium">Per Day (₹)</th>
-                <th className="px-6 py-3 text-left text-sm font-medium">Update</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Level</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Rate (₹)</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Save</th>
               </tr>
             </thead>
             <tbody>
               {globalRates.map((item, index) => (
                 <motion.tr
-                  key={item.id}
+                  key={item.level}
                   custom={index}
                   variants={rowVariants}
                   className="border-t hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4 text-gray-700">{item.role}</td>
+                  <td className="px-6 py-4 text-gray-700">{item.level}</td>
                   <td className="px-6 py-4">
                     <motion.input
                       type="number"
                       value={item.rate}
                       onChange={(e) =>
-                        handleGlobalRateChange(item.id, parseInt(e.target.value))
+                        handleGlobalRateChange(item.level, parseInt(e.target.value))
                       }
                       className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       whileFocus={{ scale: 1.02 }}
@@ -117,7 +191,7 @@ const RateCards = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={saveGlobalRate}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-sm transition-all"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-sm"
                     >
                       Save
                     </motion.button>
@@ -129,7 +203,7 @@ const RateCards = () => {
         </div>
       </div>
 
-      {/* Project-Specific Rate Card */}
+      {/* Project Rate Card */}
       <div>
         <motion.h2
           className="text-2xl font-bold text-indigo-700 mb-6"
@@ -140,7 +214,6 @@ const RateCards = () => {
           Project Rate Card (INR per Day)
         </motion.h2>
 
-        {/* Dropdown for project selection */}
         <div className="mb-4">
           <label className="mr-2 font-medium text-gray-700">Select Project:</label>
           <select
@@ -150,7 +223,7 @@ const RateCards = () => {
           >
             {projectsList.map((project) => (
               <option key={project.id} value={project.id}>
-                {project.name} (Client: {project.client})
+                {project.projectName} (Client: {project.client})
               </option>
             ))}
           </select>
@@ -164,26 +237,26 @@ const RateCards = () => {
           >
             <thead className="bg-indigo-50 text-indigo-700">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium">Role</th>
-                <th className="px-6 py-3 text-left text-sm font-medium">Per Day (₹)</th>
-                <th className="px-6 py-3 text-left text-sm font-medium">Update</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Level</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Rate (₹)</th>
+                <th className="px-6 py-3 text-left text-sm font-medium">Save</th>
               </tr>
             </thead>
             <tbody>
-              {projectRateCards[selectedProjectId].map((item, index) => (
+              {projectRates.map((item, index) => (
                 <motion.tr
-                  key={item.id}
+                  key={item.level}
                   custom={index}
                   variants={rowVariants}
                   className="border-t hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4 text-gray-700">{item.role}</td>
+                  <td className="px-6 py-4 text-gray-700">{item.level}</td>
                   <td className="px-6 py-4">
                     <motion.input
                       type="number"
                       value={item.rate}
                       onChange={(e) =>
-                        handleProjectRateChange(item.id, parseInt(e.target.value))
+                        handleProjectRateChange(item.level, parseInt(e.target.value))
                       }
                       className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       whileFocus={{ scale: 1.02 }}
@@ -194,7 +267,7 @@ const RateCards = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={saveProjectRate}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-sm transition-all"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded text-sm"
                     >
                       Save
                     </motion.button>

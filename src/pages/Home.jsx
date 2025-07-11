@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FaUserTie, FaProjectDiagram, FaBriefcase,
   FaMoneyBillWave, FaUserShield
@@ -9,92 +9,174 @@ import CountUp from 'react-countup';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
-// 📊 Dashboard Metrics
-const stats = [
-  {
-    title: 'Total Clients',
-    value: 12,
-    icon: <FaUserTie className="text-2xl text-indigo-600" />,
-  },
-  {
-    title: 'Ongoing Projects',
-    value: 26,
-    icon: <FaProjectDiagram className="text-2xl text-purple-600" />,
-  },
-  {
-    title: 'Open Positions',
-    value: 5,
-    icon: <FaBriefcase className="text-2xl text-red-600" />,
-  },
-  {
-    title: 'Over-Budget Projects',
-    value: 3,
-    icon: <FaMoneyBillWave className="text-2xl text-yellow-500" />,
-  },
-];
-
-// ⚠️ Alerts Section
-const alerts = [
-  { id: 1, message: '🚨 Project "Initech Migration" is over budget by ₹50,000.' },
-  { id: 2, message: '🕓 2 roles open > 7 days on "Compliance Portal"' },
-  { id: 3, message: '⚠️ Highlight pending for project "Web Revamp"' },
-];
-
-// 🎯 Highlights (for banner + timeline)
-const highlights = [
-  { id: 1, title: 'Phase 1 Delivered', project: 'Website Revamp', date: '2024-06-20' },
-  { id: 2, title: 'MVP Release', project: 'Compliance Portal', date: '2024-06-18' },
-];
-
-// 🔁 Banner-friendly version of highlights
-const highlightTexts = highlights.map(
-  (h) => `🎉 ${h.title} - ${h.project} on ${h.date}`
-);
-
-// 🛞 Slick carousel config
 const carouselSettings = {
   infinite: true,
-  speed: 500,
+  speed: 300,
   autoplay: true,
-  autoplaySpeed: 4000,
+  autoplaySpeed: 5000,
   arrows: false,
   dots: false,
   pauseOnHover: true,
   swipeToSlide: true,
+  cssEase: 'ease-in-out',
 };
 
 const Home = () => {
   const navigate = useNavigate();
 
+  const [stats, setStats] = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [highlights, setHighlights] = useState([]);
+  const [username, setUsername] = useState('Admin');
+
+  const [showAllHighlights, setShowAllHighlights] = useState(false);
+
+  const capitalizeName = (name) => {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded.id;
+
+        axios.get(`http://localhost:8080/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((res) => setUsername(capitalizeName(res.data.userName || 'Admin')))
+          .catch(() => setUsername('Admin'));
+      } catch {
+        setUsername('Admin');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+  
+        const [
+          clientsRes,
+          projectsRes,
+          positionsRes,
+          highlightsRes,
+          issuesRes,
+        ] = await Promise.all([
+          axios.get('http://localhost:8080/api/clients', { headers }),
+          axios.get('http://localhost:8080/api/projects', { headers }),
+          axios.get('http://localhost:8080/api/open-positions', { headers }),
+          axios.get('http://localhost:8080/api/highlights', { headers }),
+          axios.get('http://localhost:8080/api/issues', { headers }),
+        ]);
+  
+        const clientsList = Array.isArray(clientsRes.data) ? clientsRes.data : clientsRes.data?.data || [];
+        const projectsList = Array.isArray(projectsRes.data) ? projectsRes.data : projectsRes.data?.data || [];
+        const positionsList = Array.isArray(positionsRes.data) ? positionsRes.data : positionsRes.data?.data || [];
+        const highlightsList = Array.isArray(highlightsRes.data) ? highlightsRes.data : highlightsRes.data?.data || [];
+        const issuesList = Array.isArray(issuesRes.data) ? issuesRes.data : issuesRes.data?.data || [];
+  
+        const projectIdMap = {};
+        projectsList.forEach(p => {
+          const key = String(p.id);
+          projectIdMap[key] = p.name || p.projectName || p.title || 'Unnamed Project';
+        });
+  
+        const newStats = [
+          {
+            title: 'Total Clients',
+            value: clientsList.length,
+            icon: <FaUserTie className="text-2xl text-indigo-600" />,
+          },
+          {
+            title: 'Ongoing Projects',
+            value: projectsList.filter(p => p.status === 'ACTIVE').length,
+            icon: <FaProjectDiagram className="text-2xl text-purple-600" />,
+          },
+          {
+            title: 'Open Positions',
+            value: positionsList.length,
+            icon: <FaBriefcase className="text-2xl text-red-600" />,
+          },
+          {
+            title: 'Over-Budget Projects',
+            value: projectsList.filter(p => p.overBudget === true).length,
+            icon: <FaMoneyBillWave className="text-2xl text-yellow-500" />,
+          },
+        ];
+  
+        const highlightsWithProjectNames = highlightsList.map(hl => ({
+          id: hl.id,
+          title: hl.description,
+          project: projectIdMap[String(hl.projectId)] || 'Unknown Project',
+          date: new Date(hl.createdOn).toLocaleDateString(),
+        }));
+        
+        const issuesWithProjectNames = issuesList.map(issue => ({
+          ...issue,
+          project: projectIdMap[String(issue.projectId)] || 'Unknown Project',
+          date: new Date(issue.createdOn).toLocaleDateString(),
+        }));
+  
+        setStats(newStats);
+        setHighlights(highlightsWithProjectNames);
+        setIssues(issuesWithProjectNames);
+  
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      }
+    };
+  
+    fetchContent();
+  }, []);
+  
+
+  const highlightTexts = highlights.map(
+    (h) => `🎉 ${h.title} - ${h.project} on ${h.date}`
+  );
+
   return (
     <div className="min-h-screen px-6 py-8 max-w-screen-xl mx-auto flex flex-col gap-8">
 
-      {/* 🔁 Announcement Banner */}
-      <div className="w-full fixed top-16 left-0 z-40 bg-blue-100 border-y border-blue-300">
-        <Slider {...carouselSettings}>
-          {highlightTexts.map((text, index) => (
-            <div key={index} className="text-center py-2 text-blue-900 font-medium">
-              {text}
-            </div>
-          ))}
-        </Slider>
+      {/* Carousel */}
+      <div className="w-full fixed top-16 left-28 right-0 z-40">
+        <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-radius-12 border-y border-indigo-300 shadow-sm">
+          <Slider {...carouselSettings}>
+            {highlightTexts.length > 0 ? (
+              highlightTexts.map((text, index) => (
+                <div key={index} className="py-3 px-6 text-center text-indigo-900 font-medium text-sm sm:text-base tracking-wide">
+                  {text}
+                </div>
+              ))
+            ) : (
+              <div className="py-3 px-6 text-center text-gray-600">No highlights available</div>
+            )}
+          </Slider>
+        </div>
       </div>
 
-      {/* ⬇️ Push content below fixed banner */}
+      {/* Welcome & Actions */}
       <motion.div
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="mt-4 flex flex-col md:flex-row items-start justify-between gap-6"
+        className="mt-8 flex flex-col md:flex-row items-start justify-between gap-6"
       >
-        {/* 💬 Welcome Section */}
         <div className="flex-grow max-w-2xl bg-gradient-to-r from-indigo-700 to-purple-700 text-white p-6 rounded-xl shadow">
-          <h1 className="text-3xl font-bold">Welcome back, Admin 👋</h1>
+          <h1 className="text-3xl font-bold">Welcome back, {username} 👋</h1>
           <p className="text-sm text-indigo-100 mt-1">Here’s your dashboard</p>
         </div>
 
-        {/* 🎯 Quick Action Buttons */}
         <aside className="flex flex-row md:flex-col gap-4">
           {[
             {
@@ -143,58 +225,49 @@ const Home = () => {
         </aside>
       </motion.div>
 
-      {/* 📊 Stat Cards */}
+      {/* Stat Cards */}
       <motion.div
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
         initial="hidden"
         animate="visible"
-        variants={{
-          visible: {
-            transition: {
-              staggerChildren: 0.2,
-            },
-          },
-        }}
+        variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
       >
-        {stats.map((stat, index) => (
-          <motion.div
-            key={index}
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            className="bg-white shadow-md rounded-xl p-5 flex items-center gap-4"
-          >
-            <div className="bg-gray-100 p-3 rounded-full">{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500">{stat.title}</p>
-              <p className="text-xl font-semibold text-gray-800">
-                <CountUp end={stat.value} duration={1.5} />
-              </p>
-            </div>
-          </motion.div>
-        ))}
+        {stats.map((stat, index) => {
+          const isNavigable = stat.title === 'Total Clients' || stat.title === 'Ongoing Projects';
+          const targetPath =
+            stat.title === 'Total Clients' ? '/clients' :
+            stat.title === 'Ongoing Projects' ? '/projects?status=ACTIVE' :
+            null;
+
+          return (
+            <motion.div
+              key={index}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 },
+              }}
+              className={`bg-white shadow-md rounded-xl p-5 flex items-center gap-4 ${
+                isNavigable ? 'cursor-pointer hover:shadow-lg transition' : ''
+              }`}
+              onClick={() => {
+                if (targetPath) navigate(targetPath);
+              }}
+            >
+              <div className="bg-gray-100 p-3 rounded-full">{stat.icon}</div>
+              <div>
+                <p className="text-sm text-gray-500">{stat.title}</p>
+                <p className="text-xl font-semibold text-gray-800">
+                  <CountUp end={stat.value} duration={1.5} />
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+
+
       </motion.div>
 
-      {/* ⚠️ Alerts */}
-      <motion.section
-        className="mb-10"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        viewport={{ once: true }}
-      >
-        <h2 className="text-lg font-semibold text-red-600 mb-3">⚠️ Alerts & Notifications</h2>
-        <ul className="bg-white border border-red-200 p-4 rounded-xl space-y-2 shadow-sm">
-          {alerts.map((alert) => (
-            <li key={alert.id} className="text-sm text-red-700">
-              {alert.message}
-            </li>
-          ))}
-        </ul>
-      </motion.section>
-
-      {/* 🎯 Highlights Timeline */}
+      {/* Highlights Section */}
       <motion.section
         className="mb-10"
         initial={{ opacity: 0, y: 20 }}
@@ -204,16 +277,64 @@ const Home = () => {
       >
         <h2 className="text-lg font-semibold text-indigo-700 mb-4">🎯 Recent Highlights</h2>
         <ol className="relative border-l-2 border-indigo-300 ml-4">
-          {highlights.map((hl) => (
+          {(showAllHighlights ? highlights : highlights.slice(0, 3)).map((hl) => (
             <li key={hl.id} className="mb-8 pl-6 relative">
               <span className="absolute -left-3 top-2 w-4 h-4 bg-indigo-600 rounded-full border-2 border-white" />
-              <h4 className="text-sm font-bold text-indigo-800">{hl.title}</h4>
-              <p className="text-xs text-gray-600">Project: {hl.project}</p>
+              <h4 className="text-sm font-bold text-indigo-800">{hl.project}</h4>
+              <h2 className="text-xs text-gray-600">{hl.title}</h2>
               <p className="text-xs text-gray-400">Date: {hl.date}</p>
             </li>
           ))}
         </ol>
+
+        {highlights.length > 3 && (
+          <div className="mt-2 ml-4">
+            <button
+              onClick={() => setShowAllHighlights((prev) => !prev)}
+              className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition duration-200"
+            >
+              <span>{showAllHighlights ? 'View Less' : 'View More'}</span>
+              <svg
+                className={`w-4 h-4 transition-transform duration-300 ${
+                  showAllHighlights ? 'rotate-180' : 'rotate-0'
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </motion.section>
+
+
+      {/* Issues Section */}
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
+        <h2 className="text-lg font-semibold text-red-600 mb-3">🐞 Reported Issues</h2>
+        <ul className="bg-white border border-red-200 p-4 rounded-xl space-y-2 shadow-sm">
+          {issues.length === 0 ? (
+            <li className="text-sm text-gray-500">No reported issues found</li>
+          ) : (
+            issues.map((issue) => (
+              <li key={issue.id} className="text-sm text-red-700">
+                <h4>Project: {issue.project}</h4>
+                <p className='text-xs text-gray-400'>{issue.description}</p>
+                <p className="text-xs text-gray-400">Date: {issue.createdDate}</p>
+              </li>
+            ))
+          )}
+        </ul>
+      </motion.section>
+
     </div>
   );
 };

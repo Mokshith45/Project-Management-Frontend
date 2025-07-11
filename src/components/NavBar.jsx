@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import axios from '../api/axios'
+import axios from '../api/axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaUserCircle } from 'react-icons/fa';
 import { FiSearch, FiLogOut } from 'react-icons/fi';
@@ -10,36 +10,50 @@ import BxaLogo from '../assets/logobxa.png'; // Ensure the path is correct
 const Navbar = () => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  const role = localStorage.getItem('role') || 'user'; 
+  const role = localStorage.getItem('role') || 'user';
   const isAdmin = role === 'ADMIN';
-  const [username, setUsername] = useState('User');
-  useEffect(() => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const decoded = jwtDecode(token);
-      const userId = decoded.id;
 
-      axios.get(`/api/users/${userId}`)
-        .then((res) => setUsername(res.data.userName))
-        .catch(() => setUsername('User'));
-    } catch {
-      setUsername('User');
+  const [username, setUsername] = useState('User');
+
+  const capitalizeName = (name) => {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded.id;
+
+        axios.get(`/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then((res) => {
+            const rawName = res.data.userName || 'User';
+            setUsername(capitalizeName(rawName));
+          })
+          .catch(() => setUsername('User'));
+      } catch {
+        setUsername('User');
+      }
     }
-  }
-}, []);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('role'); 
+    localStorage.removeItem('role');
     setDropdownOpen(false);
     navigate('/signin');
   };
 
   return (
     <header className="h-16 w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-md backdrop-blur-md bg-opacity-90 z-50 flex items-center px-4 md:px-6 justify-between fixed top-0 left-0 rounded-b-xl transition-all duration-300">
-      
+
       {/* Logo */}
       <Link to="/" className="flex items-center gap-3 pl-1 cursor-pointer hover:opacity-90 transition">
         <img src={BxaLogo } alt="Logo" className="h-40 md:h-40 w-52 md:w-72 object-contain ml-[-28px]" />

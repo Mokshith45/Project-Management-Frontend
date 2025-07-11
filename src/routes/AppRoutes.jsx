@@ -30,6 +30,8 @@ import UserProfile from '../pages/userPages/UserProfile';
 import MyProject from '../pages/userPages/MyProject';
 import AddHighlight from '../pages/userPages/AddHighlight';
 import Resource from '../pages/userPages/Resource';
+import ProjectDetail from '../pages/ProjectDetail';
+import ClientDetail from '../pages/ClientDetail';
 
 
 
@@ -46,13 +48,19 @@ const AppRoutes = () => {
               <>
                 <Route path="/" element={<Home />} />
                 <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/add" element={<AddProject />} />
+                <Route path="/projects/:id" element={<ProjectDetail/>} />
+
+
                 <Route path="/clients" element={<Clients />} />
+                <Route path="/clients/add" element={<AddClient />} />
+                <Route path="/clients/:id" element={<ClientDetail/>}/>
+
                 <Route path="/resources" element={<Resources />} />
                 <Route path="/issues" element={<Issues />} />
                 <Route path="/highlights" element={<Highlights />} />
                 <Route path="/rate-cards" element={<RateCards />} />
-                <Route path="/projects/add" element={<AddProject />} />
-                <Route path="/clients/add" element={<AddClient />} />
+    
                 <Route path="/open-positions/add" element={<AddPosition />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path='/admin/add' element={<AddAdmin/>}/>
