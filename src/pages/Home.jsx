@@ -9,7 +9,7 @@ import CountUp from 'react-countup';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import axiosInstance from '../api/axios'; // Axios with interceptors
+import axiosInstance from '../api/axios'; 
 
 const carouselSettings = {
   infinite: true,
@@ -34,7 +34,11 @@ const Home = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const res = await axiosInstance.get('/api/users/me');
+        const token = localStorage.getItem('token');
+        console.log('Fetching username for user ID:', userName);
+        const decoded = jwtDecode(token);
+        const userId = decoded.id;
+        const res = await axiosInstance.get(`/api/users/${userId}`);
         const userName = res.data.userName || 'Admin';
         setUsername(
           userName

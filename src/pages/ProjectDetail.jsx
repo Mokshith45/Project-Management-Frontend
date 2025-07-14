@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios'; 
 import { motion } from 'framer-motion';
+import { FaCheckCircle, FaProjectDiagram, FaRegUserCircle, FaStar } from 'react-icons/fa';
+import { FaBuilding, FaClipboardList, FaPlus, FaUsers, FaUserTie } from 'react-icons/fa6';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -120,7 +122,7 @@ const ProjectDetail = () => {
         <Info label="Type" icon={<FaProjectDiagram />} value={project?.type} />
         <Info label="Department" icon={<FaBuilding />} value={project?.department} />
         <Info label="Lead" icon={<FaUserTie />} value={leadName} />
-        <Info label="Client" icon={<FaUserCircle />} value={clientName} />
+        <Info label="Client" icon={<FaRegUserCircle />} value={clientName} />
       </div>
 
       {/* Budget */}
