@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import BudgetSection from './BudgetSection';
 import { motion } from 'framer-motion';
 import {
   FaProjectDiagram, FaBuilding, FaCheckCircle,
@@ -24,7 +23,8 @@ const ProjectDetail = () => {
   const [budgetQuoted, setBudgetQuoted] = useState(0);
   const [budgetSpent, setBudgetSpent] = useState(0);
   const [budgetStatus, setBudgetStatus] = useState('');
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const toTitleCase = (str) =>
     str?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()) || 'N/A';
@@ -58,54 +58,8 @@ const ProjectDetail = () => {
         setBudgetSpent(budgetSpentRes.data || 0);
         setIssues(issuesRes.data || []);
         setHighlights(highlightsRes.data || []);
-
-        const requiredRes = await axios.get(`http://localhost:8080/api/resource-requirements/project/${id}`, { headers });
         setRequiredResources(requiredRes.data || []);
         setAllocatedResources(allocatedRes.data || []);
-        // Fetch rate cards
-      const [projectRatesRes, globalRatesRes] = await Promise.all([
-        axios.get(`http://localhost:8080/api/ratecards/project/${id}`, { headers }),
-        axios.get(`http://localhost:8080/api/ratecards/global`, { headers })
-      ]);
-
-      const projectRates = projectRatesRes.data || [];
-      const globalRates = globalRatesRes.data || [];
-
-      // Convert rate cards to lookup maps
-      const projectRateObj = Object.fromEntries(
-      projectRates.map((r) => [r.level, r.rate])
-    );
-    const globalRateObj = Object.fromEntries(
-      globalRates.map((r) => [r.level, r.rate])
-    );
-
-    setProjectRateMap(projectRateObj);
-    setGlobalRateMap(globalRateObj);
-
-// Step 2: Compute budget breakup by resource duration testing
-const breakup = {};
-
-(allocatedRes.data || []).forEach((res) => {
-  const level = res.level;
-  const rate = projectRateMap[level] || globalRateMap[level] || 0;
-
-  const start = new Date(res.startDate);
-  const end = new Date(res.endDate);
-  const timeDiff = Math.abs(end - start);
-  const numDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // include both days
-
-  const cost = rate * numDays;
-
-  if (!breakup[level]) {
-    breakup[level] = { rate, quantity: 1, days: numDays, total: cost };
-  } else {
-    breakup[level].quantity += 1;
-    breakup[level].days += numDays;
-    breakup[level].total += cost;
-  }
-});
-
-setBudgetBreakup(breakup);
 
         // Client
         if (projectData.clientId) {
@@ -113,10 +67,9 @@ setBudgetBreakup(breakup);
           setClientName(client.data?.name || 'Unknown');
         }
 
-        // Budget spent
-        const budgetSpentRes = await axios.get(`http://localhost:8080/api/projects/${id}/budget-spent`, { headers });
-        setBudgetSpent(budgetSpentRes.data || 0);
-
+        // Lead
+        const lead = await axios.get(`http://localhost:8080/api/project-leads/project/${projectData.id}`, { headers });
+        setLeadName(lead.data?.userName || 'Unknown');
 
         // Open Positions
         const open = requiredRes.data.map((req) => {
@@ -140,8 +93,6 @@ setBudgetBreakup(breakup);
     }
   }, [id]);
 
-
-
   if (loading) return <div className="text-center py-16 text-gray-600">Loading...</div>;
   if (error) return <div className="text-center py-16 text-red-600">{error}</div>;
 
@@ -161,7 +112,7 @@ setBudgetBreakup(breakup);
       <div className="flex justify-between items-center border-b pb-3 mb-4">
         <div>
           <h1 className="text-2xl font-bold text-indigo-800">{project?.projectName}</h1>
-          <p className="text-sm text-gray-500">ID: {project?.id}</p>
+          {/* <p className="text-sm text-gray-500">ID: {project?.id}</p> */}
         </div>
         <span className={`text-xs font-semibold px-3 py-1 rounded-full shadow ${
           project?.status === 'ACTIVE'
@@ -204,148 +155,46 @@ setBudgetBreakup(breakup);
         </p>
       </div>
 
-        {budgetStatus && (
-            <div className="mt-2 text-sm font-medium">
-                {budgetStatus === 'exceeded' && (
-                <p className="text-red-600">⚠ Budget Exceeded by ${(budgetSpent - budgetQuoted).toLocaleString()}</p>
-                )}
-                {budgetStatus === 'under' && (
-                <p className="text-green-600">✅ Within Budget. Remaining: ${(budgetQuoted - budgetSpent).toLocaleString()}</p>
-                )}
-                {budgetStatus === 'matched' && (
-                <p className="text-blue-600">ℹ Budget Fully Utilized</p>
-                )}
-            </div>
+      {/* Highlights + Issues */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {highlights.length > 0 && (
+          <Section title="Highlights" icon={<FaStar className="text-yellow-400" />}>
+            {highlights.map((item) => (
+              <ItemCard key={item.id} title={item.title} date={item.createdOn} desc={item.description} color="blue" />
+            ))}
+          </Section>
         )}
-
-      {(highlights.length > 0 || issues.length > 0) && (
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Highlights Section */}
-            {highlights.length > 0 && (
-            <div>
-                <h2 className="text-xl font-semibold text-blue-700 flex items-center gap-2 mb-4">
-                <FaStar className="text-yellow-500" /> Highlights
-                </h2>
-                <div className="flex flex-col gap-4">
-                {highlights.map((item) => (
-                    <div key={item.id} className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-md">
-                    <h3 className="text-lg font-bold text-blue-800 mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-700 mb-3">
-                        <span className="font-semibold">Description:</span> {item.description}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                        <span className="font-semibold">Created On:</span>{' '}
-                        {new Date(item.createdOn).toLocaleDateString()}
-                    </p>
-                    </div>
-                ))}
-                </div>
-            </div>
-            )}
-
-            {/* Issues Section */}
-            {issues.length > 0 && (
-            <div>
-                <h2 className="text-xl font-semibold text-red-700 flex items-center gap-2 mb-4">
-                <FaBug className="text-red-500" /> Issues
-                </h2>
-                <div className="flex flex-col gap-4">
-                {issues.map((item) => (
-                    <div key={item.id} className="bg-red-50 p-5 rounded-2xl border border-red-200 shadow-md">
-                    <h3 className="text-lg font-bold text-red-800 mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-700 mb-2">
-                        <span className="font-semibold">Description:</span> {item.description}
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                        <p>
-                        <span className="font-semibold">Severity:</span>{' '}
-                        <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
-                            item.severity === 'HIGH'
-                                ? 'bg-red-600'
-                                : item.severity === 'MEDIUM'
-                                ? 'bg-orange-500'
-                                : 'bg-green-500'
-                            }`}
-                        >
-                            {item.severity}
-                        </span>
-                        </p>
-                        <p>
-                        <span className="font-semibold">Status:</span>{' '}
-                        <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
-                            item.status === 'OPEN'
-                                ? 'bg-yellow-600'
-                                : item.status === 'RESOLVED'
-                                ? 'bg-green-600'
-                                : 'bg-gray-500'
-                            }`}
-                        >
-                            {item.status}
-                        </span>
-                        </p>
-                        <p>
-                        <span className="font-semibold">Created By:</span> {item.createdBy}
-                        </p>
-                        <p>
-                        <span className="font-semibold">Created On:</span>{' '}
-                        {new Date(item.createdDate).toLocaleDateString()}
-                        </p>
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </div>
-            )}
-        </div>
+        {issues.length > 0 && (
+          <Section title="Issues" icon={<FaBug className="text-red-500" />}>
+            {issues.map((item) => (
+              <ItemCard key={item.id} title={item.title} date={item.createdDate} desc={item.description} color="red" />
+            ))}
+          </Section>
         )}
+      </div>
 
-
-      <div className="mt-12">
-        <h2 className="text-xl font-semibold text-indigo-700 flex items-center gap-2 mb-4">
-          <FaUsers className="text-indigo-500" /> Resource Allocation Overview
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white shadow rounded-xl overflow-hidden border border-gray-200">
-            <thead className="bg-indigo-50 text-indigo-800 text-sm">
-              <tr>
-                <th className="py-2 px-4 text-left">Level</th>
-                <th className="py-2 px-4 text-left">Required</th>
-                <th className="py-2 px-4 text-left">Allocated</th>
-                <th className="py-2 px-4 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requiredResources.map((res, idx) => {
-                const allocated = allocatedMap[res.level] || 0;
-                const isComplete = allocated >= res.quantity;
-
-                return (
-                  <tr
-                    key={idx}
-                    className={`text-sm ${isComplete ? 'bg-green-50' : 'bg-yellow-50'} border-b`}
-                  >
-                    <td className="py-2 px-4 font-medium">{res.level}</td>
-                    <td className="py-2 px-4">{res.quantity}</td>
-                    <td className="py-2 px-4">{allocated}</td>
-                    <td className="py-2 px-4">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                          isComplete
-                            ? 'bg-green-200 text-green-800'
-                            : 'bg-yellow-200 text-yellow-800'
-                        }`}
-                      >
-                        {isComplete ? 'Filled' : 'Pending'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Resource Overview Table */}
+      <div className="mb-6">
+        <h3 className="text-indigo-700 font-semibold text-lg mb-2 flex items-center gap-2">
+          <FaUsers /> Resource Allocation
+        </h3>
+        <Table
+          headers={['Level', 'Required', 'Allocated', 'Status']}
+          rows={requiredResources.map((res) => {
+            const allocated = allocatedMap[res.level] || 0;
+            const filled = allocated >= res.quantity;
+            return [
+              res.level,
+              res.quantity,
+              allocated,
+              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                filled ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'
+              }`}>
+                {filled ? 'Filled' : 'Pending'}
+              </span>
+            ];
+          })}
+        />
       </div>
 
       {/* Open Positions */}
