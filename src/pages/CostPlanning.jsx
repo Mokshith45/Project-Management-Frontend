@@ -16,7 +16,12 @@ const CostPlanning = () => {
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.type === 'number'
+        ? parseInt(e.target.value, 10)
+        : e.target.value,
+    });
   };
 
   const calculatedCost =

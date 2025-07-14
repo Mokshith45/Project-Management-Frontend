@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import axiosInstance from '../api/axios'; // centralized Axios
 
 const statusColors = {
   Open: 'bg-red-100 text-red-800',
@@ -39,15 +39,8 @@ const Issues = () => {
   useEffect(() => {
     const fetchIssues = async () => {
       try {
-        const token = localStorage.getItem('token');
-
-        const response = await axios.get('http://localhost:8080/api/issues', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setIssues(response.data || []);
+        const res = await axiosInstance.get('/api/issues');
+        setIssues(res.data || []);
       } catch (err) {
         console.error(err);
         setError('❌ Failed to load issues. Please try again later.');
@@ -58,9 +51,6 @@ const Issues = () => {
 
     fetchIssues();
   }, []);
-
-  if (loading) return <p className="p-4 text-gray-600">Loading issues...</p>;
-  if (error) return <p className="p-4 text-red-600">{error}</p>;
 
   return (
     <motion.div

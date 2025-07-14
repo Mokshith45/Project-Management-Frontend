@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import axiosInstance from '../api/axios';
 
 const ClientDetail = () => {
   const { id } = useParams();
@@ -15,14 +15,11 @@ const ClientDetail = () => {
   useEffect(() => {
     const fetchClientData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-
         const [clientRes, projectsRes, resourcesRes, spocRes] = await Promise.all([
-          axios.get(`http://localhost:8080/api/clients/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/projects/client/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/resources/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/contact-persons/${id}`, { headers }),
+          axiosInstance.get(`/api/clients/${id}`),
+          axiosInstance.get(`/api/projects/client/${id}`),
+          axiosInstance.get(`/api/resources/project/${id}`),
+          axiosInstance.get(`/api/contact-persons/${id}`),
         ]);
 
         setClient(clientRes.data);
@@ -39,9 +36,6 @@ const ClientDetail = () => {
 
     fetchClientData();
   }, [id]);
-
-  if (loading) return <div className="py-10 text-center text-gray-600">Loading client details...</div>;
-  if (error) return <div className="py-10 text-center text-red-600">{error}</div>;
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">

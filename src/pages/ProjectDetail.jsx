@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axiosInstance from '../api/axios'; // ✅ updated import
+import axiosInstance from '../api/axios'; 
 import { motion } from 'framer-motion';
 
 const ProjectDetail = () => {

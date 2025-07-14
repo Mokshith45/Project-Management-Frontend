@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from '../api/axios'; // ✅ centralized axios
 
 const urgencyColors = {
   High: 'bg-red-100 text-red-700',
@@ -14,12 +14,7 @@ const OpenPositions = () => {
   useEffect(() => {
     const fetchOpenPositions = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:8080/api/open-positions', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await axios.get('/api/open-positions'); // ✅ token auto-added via interceptor
         setPositions(res.data);
       } catch (err) {
         console.error('Error fetching open positions:', err);
@@ -31,6 +26,7 @@ const OpenPositions = () => {
 
     fetchOpenPositions();
   }, []);
+
 
   return (
     <div className="p-4">

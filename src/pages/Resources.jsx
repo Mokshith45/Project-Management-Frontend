@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import axios from '../api/axios'; // ✅ Centralized Axios with interceptors
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
@@ -9,18 +9,12 @@ const Resources = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🔁 Fetch resources & project names
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
-
         const [resResponse, projResponse] = await Promise.all([
-          axios.get('http://localhost:8080/api/resources', { headers }),
-          axios.get('http://localhost:8080/api/projects', { headers }),
+          axios.get('/api/resources'),
+          axios.get('/api/projects'),
         ]);
 
         const resourcesList = resResponse.data || [];
@@ -49,6 +43,7 @@ const Resources = () => {
     if (filter === 'allocated') return res.allocated;
     return true;
   });
+
 
   return (
     <motion.div
