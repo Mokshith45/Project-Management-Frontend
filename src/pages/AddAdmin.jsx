@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../api/axios';
 
 const AddAdmin = () => {
   const [form, setForm] = useState({
@@ -25,21 +26,13 @@ const AddAdmin = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch('/api/admins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, role: 'Admin' }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add admin');
-      }
+      await axiosInstance.post('/api/admins', { ...form, role: 'Admin' });
       setSuccess(true);
       setForm({ name: '', email: '', password: '' });
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
       console.error('Add Admin Error:', err);
-      setErrorMsg(err.message);
+      setErrorMsg(err.response?.data?.message || 'Failed to add admin');
     } finally {
       setLoading(false);
     }
@@ -57,6 +50,7 @@ const AddAdmin = () => {
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded-md border-gray-300"
             placeholder="Admin Name"
+            required
           />
         </div>
         <div>
@@ -68,6 +62,7 @@ const AddAdmin = () => {
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded-md border-gray-300"
             placeholder="admin@example.com"
+            required
           />
         </div>
         <div>
@@ -79,12 +74,11 @@ const AddAdmin = () => {
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded-md border-gray-300"
             placeholder="••••••••"
+            required
           />
         </div>
 
-        {errorMsg && (
-          <p className="text-sm text-red-600">{errorMsg}</p>
-        )}
+        {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
 
         <button
           type="submit"
@@ -94,9 +88,7 @@ const AddAdmin = () => {
           {loading ? 'Adding...' : 'Add Admin'}
         </button>
 
-        {success && (
-          <p className="text-green-600 mt-2 text-sm">✅ Admin added successfully!</p>
-        )}
+        {success && <p className="text-green-600 mt-2 text-sm">✅ Admin added successfully!</p>}
       </form>
     </div>
   );

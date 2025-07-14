@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../api/axios'; // ✅ updated import
 import { motion } from 'framer-motion';
-import budgetSection from './BudgetSection';
-import {
-  FaProjectDiagram, FaBuilding, FaCheckCircle,
-  FaUserTie, FaUserCircle, FaBug, FaStar,
-  FaUsers, FaPlus, FaClipboardList,
-} from 'react-icons/fa';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -44,13 +38,20 @@ const ProjectDetail = () => {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        const [projectRes, issuesRes, highlightsRes, requiredRes, allocatedRes, budgetSpentRes] = await Promise.all([
-          axios.get(`http://localhost:8080/api/projects/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/issues/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/highlights/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/resource-requirements/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/resources/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/projects/${id}/budget-spent`, { headers }),
+        const [
+          projectRes,
+          issuesRes,
+          highlightsRes,
+          requiredRes,
+          allocatedRes,
+          budgetSpentRes
+        ] = await Promise.all([
+          axiosInstance.get(`/api/projects/${id}`, { headers }),
+          axiosInstance.get(`/api/issues/project/${id}`, { headers }),
+          axiosInstance.get(`/api/highlights/project/${id}`, { headers }),
+          axiosInstance.get(`/api/resource-requirements/project/${id}`, { headers }),
+          axiosInstance.get(`/api/resources/project/${id}`, { headers }),
+          axiosInstance.get(`/api/projects/${id}/budget-spent`, { headers }),
         ]);
 
         const projectData = projectRes.data;
@@ -62,23 +63,20 @@ const ProjectDetail = () => {
         setRequiredResources(requiredRes.data || []);
         setAllocatedResources(allocatedRes.data || []);
 
-        // Client
         if (projectData.clientId) {
-          const client = await axios.get(`http://localhost:8080/api/clients/${projectData.clientId}`, { headers });
+          const client = await axiosInstance.get(`/api/clients/${projectData.clientId}`, { headers });
           setClientName(client.data?.name || 'Unknown');
         }
 
-        // Lead
-        const lead = await axios.get(`http://localhost:8080/api/project-leads/project/${projectData.id}`, { headers });
+        const lead = await axiosInstance.get(`/api/project-leads/project/${projectData.id}`, { headers });
         setLeadName(lead.data?.userName || 'Unknown');
 
-        // Open Positions
         const open = requiredRes.data.map((req) => {
           const allocated = allocatedRes.data.filter((r) => r.level === req.level).length;
           return { level: req.level, required: req.quantity, remaining: req.quantity - allocated };
         }).filter(p => p.remaining > 0);
-        setOpenPositions(open);
 
+        setOpenPositions(open);
       } catch (err) {
         console.error(err);
         setError('Error loading data.');
@@ -93,14 +91,6 @@ const ProjectDetail = () => {
       setLoading(false);
     }
   }, [id]);
-
-  if (loading) return <div className="text-center py-16 text-gray-600">Loading...</div>;
-  if (error) return <div className="text-center py-16 text-red-600">{error}</div>;
-
-  const allocatedMap = allocatedResources.reduce((acc, r) => {
-    acc[r.level] = (acc[r.level] || 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <motion.div

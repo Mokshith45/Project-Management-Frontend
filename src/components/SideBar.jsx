@@ -27,9 +27,9 @@ const adminNavItems = [
 const userNavItems = [
   { path: '/user/home', label: 'Home', icon: <FaHome /> },
   { path: '/user/my-project', label: 'My Project', icon: <FaBriefcase /> },
-  { path: '/user/my-highlights', label: 'My Highlights', icon: <FaMedal /> },
   { path: '/user/my-client', label: 'My Client', icon: <FaBuilding /> },
   { path: '/user/my-issues', label: 'My Issues', icon: <FaBug /> },
+  { path: '/user/my-highlights', label: 'My Highlights', icon: <FaMedal /> },
   { path: '/user/my-resouces', label: 'My Resources', icon: <FaUsers /> },
   
 ];

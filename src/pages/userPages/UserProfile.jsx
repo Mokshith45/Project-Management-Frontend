@@ -1,12 +1,11 @@
 import React, { useState, useContext } from 'react';
-import { UserContext } from '../userPages/UserContext'; // adjust path if needed
+import { UserContext } from '../userPages/UserContext';
 import axiosInstance from '../../api/axios';
 
 const UserProfile = () => {
-  const { user, setUser } = useContext(UserContext);
+  const { user } = useContext(UserContext);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    oldPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
@@ -21,39 +20,25 @@ const UserProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { oldPassword, newPassword, confirmPassword } = formData;
+    const { newPassword, confirmPassword } = formData;
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError('All fields are required.');
       return;
     }
 
-    if (oldPassword !== user?.password) {
-      setError('Current password does not match.');
-      return;
-    }
-
-    if (newPassword === oldPassword) {
-      setError('New password cannot be the same as the old one.');
-      return;
-    }
-
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
+      setError('Passwords do not match.');
       return;
     }
 
     try {
-      const updatedUser = { ...user, password: newPassword };
+      const res = await axiosInstance.post('/api/auth/change-password', {
+        newPassword,
+      });
 
-      const res = await axiosInstance.put(
-        `/api/users/${user.id}`,
-        updatedUser
-      );
-
-      setUser(res.data);
       setSuccess('Password changed successfully!');
-      setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setFormData({ newPassword: '', confirmPassword: '' });
 
       setTimeout(() => {
         setSuccess('');
@@ -61,7 +46,9 @@ const UserProfile = () => {
       }, 1500);
     } catch (err) {
       console.error(err);
-      setError('Failed to update password.');
+      setError(
+        err.response?.data || 'Failed to update password. Please try again.'
+      );
     }
   };
 
@@ -72,10 +59,18 @@ const UserProfile = () => {
       <h2 className="text-2xl font-bold text-indigo-700 mb-4">👩‍💼 User Profile</h2>
 
       <div className="space-y-4 text-gray-700">
-        <div><span className="font-semibold">User Id:</span> {user.id}</div>
-        <div><span className="font-semibold">Name:</span> {user.userName}</div>
-        <div><span className="font-semibold">Email:</span> {user.email}</div>
-        <div><span className="font-semibold">Role:</span> {user.userType}</div>
+        <div>
+          <span className="font-semibold">User Id:</span> {user.id}
+        </div>
+        <div>
+          <span className="font-semibold">Name:</span> {user.userName}
+        </div>
+        <div>
+          <span className="font-semibold">Email:</span> {user.email}
+        </div>
+        <div>
+          <span className="font-semibold">Role:</span> {user.userType}
+        </div>
       </div>
 
       <div className="mt-6">
@@ -87,7 +82,6 @@ const UserProfile = () => {
         </button>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow relative">
@@ -98,17 +92,10 @@ const UserProfile = () => {
               ✖
             </button>
 
-            <h3 className="text-xl font-bold text-indigo-700 mb-4">🔐 Change Password</h3>
+            <h3 className="text-xl font-bold text-indigo-700 mb-4">
+              🔐 Change Password
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="password"
-                name="oldPassword"
-                value={formData.oldPassword}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2"
-                placeholder="Current Password"
-                required
-              />
               <input
                 type="password"
                 name="newPassword"

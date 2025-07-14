@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axiosInstance from '../api/axios'; 
 
 const statusStyles = {
   ACTIVE: 'bg-yellow-100 text-yellow-800',
   COMPLETED: 'bg-green-100 text-green-800',
-  'ON_HOLD': 'bg-red-100 text-red-800',
+  ON_HOLD: 'bg-red-100 text-red-800',
 };
 
 const containerVariants = {
@@ -29,43 +30,29 @@ const Projects = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Read status from query param (e.g., ?status=ACTIVE)
   const queryParams = new URLSearchParams(location.search);
   const statusFilter = queryParams.get('status');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const fetchProjects = async () => {
+      try {
+        const res = await axiosInstance.get('/api/projects');
+        setProjects(res.data);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+        setErrorMsg(err.message || 'Error fetching projects');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    fetch('http://localhost:8080/api/projects', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Error ${res.status}: ${errorText}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setProjects(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Failed to fetch projects:', error);
-        setErrorMsg(error.message);
-        setLoading(false);
-      });
+    fetchProjects();
   }, []);
 
-  // Apply filter if statusFilter exists
   const filteredProjects = statusFilter
     ? projects.filter((p) => p.status === statusFilter)
     : projects;
+
 
   return (
     <motion.div

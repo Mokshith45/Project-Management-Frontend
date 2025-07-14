@@ -9,7 +9,7 @@ import CountUp from 'react-countup';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import axios from 'axios';
+import axiosInstance from '../api/axios';
 import { jwtDecode } from 'jwt-decode';
 
 const carouselSettings = {
@@ -31,7 +31,6 @@ const Home = () => {
   const [issues, setIssues] = useState([]);
   const [highlights, setHighlights] = useState([]);
   const [username, setUsername] = useState('Admin');
-
   const [showAllHighlights, setShowAllHighlights] = useState(false);
 
   const capitalizeName = (name) => {
@@ -42,56 +41,51 @@ const Home = () => {
       .join(' ');
   };
 
-  useEffect(() => {
+    useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const userId = decoded.id;
+    try {
+      const decoded = jwtDecode(token);
+      const userId = decoded.id;
 
-        axios.get(`http://localhost:8080/api/users/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-          .then((res) => setUsername(capitalizeName(res.data.userName || 'Admin')))
-          .catch(() => setUsername('Admin'));
-      } catch {
-        setUsername('Admin');
-      }
+      axiosInstance.get(`/api/users/${userId}`)
+        .then((res) => setUsername(capitalizeName(res.data.userName || 'Admin')))
+        .catch(() => setUsername('Admin'));
+    } catch {
+      setUsername('Admin');
     }
   }, []);
+
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-  
         const [
-          clientsRes,
-          projectsRes,
-          positionsRes,
-          highlightsRes,
-          issuesRes,
-        ] = await Promise.all([
-          axios.get('http://localhost:8080/api/clients', { headers }),
-          axios.get('http://localhost:8080/api/projects', { headers }),
-          axios.get('http://localhost:8080/api/open-positions', { headers }),
-          axios.get('http://localhost:8080/api/highlights', { headers }),
-          axios.get('http://localhost:8080/api/issues', { headers }),
-        ]);
-  
+        clientsRes,
+        projectsRes,
+        positionsRes,
+        highlightsRes,
+        issuesRes,
+      ] = await Promise.all([
+        axiosInstance.get('/api/clients'),
+        axiosInstance.get('/api/projects'),
+        axiosInstance.get('/api/open-positions'),
+        axiosInstance.get('/api/highlights'),
+        axiosInstance.get('/api/issues'),
+      ]);
+
+
         const clientsList = Array.isArray(clientsRes.data) ? clientsRes.data : clientsRes.data?.data || [];
         const projectsList = Array.isArray(projectsRes.data) ? projectsRes.data : projectsRes.data?.data || [];
         const positionsList = Array.isArray(positionsRes.data) ? positionsRes.data : positionsRes.data?.data || [];
         const highlightsList = Array.isArray(highlightsRes.data) ? highlightsRes.data : highlightsRes.data?.data || [];
         const issuesList = Array.isArray(issuesRes.data) ? issuesRes.data : issuesRes.data?.data || [];
-  
+
         const projectIdMap = {};
         projectsList.forEach(p => {
           const key = String(p.id);
           projectIdMap[key] = p.name || p.projectName || p.title || 'Unnamed Project';
         });
-  
+
         const newStats = [
           {
             title: 'Total Clients',
@@ -114,32 +108,31 @@ const Home = () => {
             icon: <FaMoneyBillWave className="text-2xl text-yellow-500" />,
           },
         ];
-  
+
         const highlightsWithProjectNames = highlightsList.map(hl => ({
           id: hl.id,
           title: hl.description,
           project: projectIdMap[String(hl.projectId)] || 'Unknown Project',
           date: new Date(hl.createdOn).toLocaleDateString(),
         }));
-        
+
         const issuesWithProjectNames = issuesList.map(issue => ({
           ...issue,
           project: projectIdMap[String(issue.projectId)] || 'Unknown Project',
           date: new Date(issue.createdOn).toLocaleDateString(),
         }));
-  
+
         setStats(newStats);
         setHighlights(highlightsWithProjectNames);
         setIssues(issuesWithProjectNames);
-  
+
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
       }
     };
-  
+
     fetchContent();
   }, []);
-  
 
   const highlightTexts = highlights.map(
     (h) => `🎉 ${h.title} - ${h.project} on ${h.date}`
