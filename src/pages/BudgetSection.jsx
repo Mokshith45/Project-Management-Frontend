@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axiosInstance from '../api/axios'; // adjust path if needed
+import axios from 'axios';
 
 const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
   const [budgetSpent, setBudgetSpent] = useState(0);
@@ -12,22 +12,28 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
   useEffect(() => {
     const fetchRatesAndCalculate = async () => {
       try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch project & global rate cards
         const [projectRatesRes, globalRatesRes] = await Promise.all([
-          axiosInstance.get(`/api/ratecards/project/${projectId}`),
-          axiosInstance.get(`/api/ratecards/global`)
+          axios.get(`http://localhost:8080/api/ratecards/project/${projectId}`, { headers }),
+          axios.get(`http://localhost:8080/api/ratecards/global`, { headers })
         ]);
 
         const projectRateMap = Object.fromEntries(
           (projectRatesRes.data || []).map(r => [r.level, r.rate])
         );
+
         const globalRateMap = Object.fromEntries(
           (globalRatesRes.data || []).map(r => [r.level, r.rate])
         );
 
+        // Calculate cost per resource
         let totalSpent = 0;
         const resourceCosts = (allocatedResources || []).map((res) => {
           const start = new Date(res.startDate);
-          const end = res.endDate ? new Date(res.endDate) : new Date(); // fallback to today
+          const end = new Date(res.endDate);
           const daysTotal = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
           const workingDays = Math.round((daysTotal / DAYS_IN_YEAR) * WORKING_DAYS_PER_YEAR);
@@ -48,6 +54,7 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
         setResourceCosts(resourceCosts);
         setBudgetSpent(totalSpent);
 
+        // Determine budget status
         if (Math.abs(totalSpent - budgetQuoted) < 50) {
           setStatus('exact');
         } else if (totalSpent < budgetQuoted) {
@@ -64,6 +71,20 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
       fetchRatesAndCalculate();
     }
   }, [projectId, allocatedResources, budgetQuoted]);
+
+  const getStatusText = () => {
+    if (status === 'exact') return 'Budget perfectly utilized';
+    if (status === 'deficit') return `⚠ Over budget by ₹ ${(budgetSpent - budgetQuoted).toLocaleString()}`;
+    if (status === 'surplus') return ` Surplus₹ ${(budgetQuoted - budgetSpent).toLocaleString()}`;
+    return '';
+  };
+
+  const getProgressColor = () => {
+    if (status === 'exact') return 'bg-blue-500';
+    if (status === 'deficit') return 'bg-red-500';
+    if (status === 'surplus') return 'bg-red-500';
+    return 'bg-gray-300';
+  };
 
   return (
     <div className="mt-10 bg-white p-6 rounded-xl border border-gray-200 shadow">

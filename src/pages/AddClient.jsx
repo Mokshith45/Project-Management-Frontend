@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../api/axios'; // ✅ centralized instance with interceptors
 
 const AddClient = () => {
   const navigate = useNavigate();
@@ -18,34 +17,52 @@ const AddClient = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic field validation
-    if (!form.name.trim() || !form.email.trim() || !form.onBoardedOn) {
+    // Basic validation
+    if (!form.name || !form.email || !form.onBoardedOn) {
       alert('Please fill all required fields: Name, Email, and Onboard Date.');
       return;
     }
 
-    // Optional: rating should be between 0 and 10 if provided
     if (
       form.clientRating !== '' &&
-      (isNaN(form.clientRating) || form.clientRating < 0 || form.clientRating > 10)
+      (isNaN(form.clientRating) ||
+        form.clientRating < 0 ||
+        form.clientRating > 10)
     ) {
       alert('Client rating must be a number between 0 and 10.');
       return;
     }
 
     const clientData = {
-      name: form.name.trim(),
-      email: form.email.trim(),
+      name: form.name,
+      email: form.email,
       onBoardedOn: form.onBoardedOn,
       clientRating: form.clientRating ? Number(form.clientRating) : 0,
     };
 
     try {
-      await axios.post('/api/clients', clientData); // ✅ No need to attach token here
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/clients', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clientData),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Failed to add client: ${response.status} - ${text}`);
+      }
+
+      const createdClient = await response.json();
+      console.log('✅ Client added:', createdClient);
+
       navigate('/clients', { replace: true });
     } catch (error) {
-      console.error('❌ Error adding client:', error);
-      alert('Error adding client. Please try again later.');
+      console.error('Error adding client:', error);
+      alert('Error adding client. Please try again.');
     }
   };
 

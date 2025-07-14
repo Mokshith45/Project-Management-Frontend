@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../api/axios'; // ✅ Centralized Axios instance
+import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
+// Utility function to capitalize first letter of each word
 const capitalizeName = (name) => {
   return name
     .toLowerCase()
     .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
 
@@ -23,6 +24,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchAdminDetails = async () => {
       const token = localStorage.getItem('token');
+
       if (!token) {
         setError('No token found. Please log in.');
         setLoading(false);
@@ -33,14 +35,18 @@ const Profile = () => {
         const decoded = jwtDecode(token);
         const userId = decoded.id;
 
-        const res = await axios.get(`/api/users/${userId}`); // ✅ Axios with interceptor
+        const res = await axios.get(`http://localhost:8080/api/users/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
         setAdminData({
           id: res.data.id || '',
           name: capitalizeName(res.data.userName || ''),
           email: res.data.email || '',
         });
       } catch (err) {
-        console.error('Error fetching admin profile:', err);
         setError('Failed to fetch admin data. Please try again.');
       } finally {
         setLoading(false);
@@ -50,6 +56,21 @@ const Profile = () => {
     fetchAdminDetails();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="text-center mt-20 text-indigo-600 font-medium">
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center mt-20 text-red-600 font-medium">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow-lg rounded-xl p-8 max-w-xl mx-auto mt-10">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axiosInstance from '../api/axios'; 
+import axiosInstance from '../api/axios'; // ✅ updated import
 import { motion } from 'framer-motion';
 import { FaCheckCircle, FaProjectDiagram, FaRegUserCircle, FaStar } from 'react-icons/fa';
 import { FaBuilding, FaClipboardList, FaPlus, FaUsers, FaUserTie } from 'react-icons/fa6';

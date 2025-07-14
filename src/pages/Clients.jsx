@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axiosInstance from '../api/axios';
-import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
 
+// Animation variants for entry
 const containerVariants = {
   hidden: {},
   show: {
@@ -24,6 +24,7 @@ const Clients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Capitalize first letter of each word in client name
   const capitalizeName = (name) =>
     name
       .toLowerCase()
@@ -31,11 +32,15 @@ const Clients = () => {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
+  // 🔁 Fetch all clients on mount
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const res = await axiosInstance.get('/api/clients');
-        setClients(Array.isArray(res.data) ? res.data : res.data?.data || []);
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:8080/api/clients', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setClients(response.data || []);
       } catch (err) {
         console.error(err);
         setError('Failed to load clients');
@@ -46,7 +51,6 @@ const Clients = () => {
 
     fetchClients();
   }, []);
-
 
   return (
     <motion.div

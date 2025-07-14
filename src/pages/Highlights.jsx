@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-import axiosInstance from '../api/axios';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,11 +21,18 @@ const Highlights = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
         const [hlRes, projRes] = await Promise.all([
-          axiosInstance.get('/api/highlights'),
-          axiosInstance.get('/api/projects'),
+          axios.get('http://localhost:8080/api/highlights', { headers }),
+          axios.get('http://localhost:8080/api/projects', { headers }),
         ]);
 
+        console.log('Highlights:', hlRes.data);
+        console.log('Projects:', projRes.data);
+
+        // Ensure both are arrays
         setHighlights(Array.isArray(hlRes.data) ? hlRes.data : []);
         setProjects(Array.isArray(projRes.data) ? projRes.data : []);
       } catch (err) {
@@ -39,10 +46,12 @@ const Highlights = () => {
     fetchData();
   }, []);
 
-  const projectMap = projects.reduce((map, p) => {
-    map[p.id] = p.name || p.projectName || p.title || 'Unnamed Project';
-    return map;
-  }, {});
+  const projectMap = Array.isArray(projects)
+    ? projects.reduce((map, p) => {
+        map[p.id] = p.name || p.projectName || p.title || 'Unnamed Project';
+        return map;
+      }, {})
+    : {};
 
   const grouped = highlights.reduce((acc, hl) => {
     const pid = hl.projectId;
@@ -51,6 +60,8 @@ const Highlights = () => {
     return acc;
   }, {});
 
+  if (loading) return <p className="p-6 text-center text-gray-600">Loading highlights...</p>;
+  if (error) return <p className="p-6 text-center text-red-600">{error}</p>;
 
   return (
     <motion.div

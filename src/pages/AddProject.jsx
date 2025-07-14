@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axiosInstance from '../api/axios';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 const stepLabels = ['Basic Info', 'Client Details', 'Budget & SPOC'];
 
@@ -33,23 +31,39 @@ const AddProject = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [contactsRes, clientsRes, leadsRes, projectsRes] = await Promise.all([
-          axiosInstance.get('/api/contact-persons'),
-          axiosInstance.get('/api/clients'),
-          axiosInstance.get('/api/project-leads'),
-          axiosInstance.get('/api/projects'),
-        ]);
+    const token = localStorage.getItem('token');
 
-        const unassigned = contactsRes.data.filter((c) => c.projectId == null);
+    axios
+      .get('http://localhost:8080/api/contact-persons', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const unassigned = res.data.filter((c) => c.projectId == null);
         setContacts(unassigned);
+      })
+      .catch((err) => console.error('Error fetching contacts:', err));
 
+    const fetchClients = axios.get('http://localhost:8080/api/clients', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const fetchProjects = axios.get('http://localhost:8080/api/projects', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const fetchLeads = axios.get('http://localhost:8080/api/project-leads', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    Promise.all([fetchClients, fetchLeads, fetchProjects])
+      .then(([clientsRes, leadsRes, projectsRes]) => {
         const assignedLeadIds = new Set(projectsRes.data.map((p) => p.projectLeadId));
         const availableLeads = leadsRes.data.filter((lead) => !assignedLeadIds.has(lead.id));
-        setProjectLeadsList(
-          availableLeads.map((lead) => ({ value: lead.id.toString(), label: lead.userName }))
-        );
+        const leadsFormatted = availableLeads.map((lead) => ({
+          value: lead.id.toString(),
+          label: lead.userName,
+        }));
+        setProjectLeadsList(leadsFormatted);
 
         const clientsFormatted = clientsRes.data.map((c) => ({
           value: c.id,
@@ -57,15 +71,14 @@ const AddProject = () => {
         }));
         clientsFormatted.push({ value: 'others', label: 'Others' });
         setClientsList(clientsFormatted);
-      } catch (err) {
-        console.error('Error fetching form data:', err);
-        toast.error('❌ Failed to load form data');
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchData();
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching data:', err);
+        alert('Failed to load form data');
+        setLoading(false);
+      });
   }, []);
 
   const handleChange = (e) => {
@@ -76,18 +89,18 @@ const AddProject = () => {
   const validateStep = () => {
     const errs = {};
     if (step === 0) {
-      if (!form.projectName) errs.projectName = 'Required';
-      if (!form.type) errs.type = 'Required';
-      if (!form.department) errs.department = 'Required';
+      if (!form.projectName) errs.projectName = true;
+      if (!form.type) errs.type = true;
+      if (!form.department) errs.department = true;
     }
 
     if (step === 1) {
-      if (!form.client) errs.client = 'Required';
+      if (!form.client) errs.client = true;
       if (form.client === 'others') {
-        if (!form.newClientName.trim()) errs.newClientName = 'Required';
-        if (!form.newClientEmail.trim()) errs.newClientEmail = 'Required';
-        if (!form.onboardedOn) errs.onboardedOn = 'Required';
-        if (!form.rating || isNaN(form.rating)) errs.rating = 'Valid number required';
+        if (!form.newClientName.trim()) errs.newClientName = true;
+        if (!form.newClientEmail.trim()) errs.newClientEmail = true;
+        if (!form.onboardedOn) errs.onboardedOn = true;
+        if (!form.rating || isNaN(form.rating)) errs.rating = true;
       }
     }
 
@@ -109,13 +122,14 @@ const AddProject = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     if (!validateStep()) return;
 
     const projectPayload = {
       projectName: form.projectName,
       type: form.type,
       department: form.department,
-      status: form.status,
+      status: 'ACTIVE',
       budget: form.totalBudget ? Number(form.totalBudget) : 0,
       clientId: form.client !== 'others' ? Number(form.client) : 0,
       projectLeadId: form.projectLead ? Number(form.projectLead) : 0,
@@ -125,14 +139,17 @@ const AddProject = () => {
     };
 
     try {
-      await axiosInstance.post('/api/projects', projectPayload);
-      toast.success('✅ Project created successfully');
+      await axios.post('http://localhost:8080/api/projects', projectPayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       navigate('/projects');
     } catch (err) {
       console.error('❌ Error submitting project:', err);
-      toast.error('Failed to create project');
+      alert('Failed to create project');
     }
   };
+
+  if (loading) return <div className="p-6">Loading form data...</div>;
 
   const Label = ({ children }) => (
     <label className="block text-sm mb-1 font-medium text-gray-700">
@@ -140,15 +157,9 @@ const AddProject = () => {
     </label>
   );
 
-  if (loading) return <div className="p-6">Loading form data...</div>;
-
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-bold text-indigo-700 mb-4">Add New Project</h2>
-
-      <p className="text-xs text-gray-500 mb-3">
-        Fields marked with <span className="text-red-500">*</span> are required.
-      </p>
 
       <div className="flex items-center mb-6 space-x-2 text-sm text-gray-600">
         {stepLabels.map((s, i) => (
@@ -314,9 +325,7 @@ const AddProject = () => {
                   errors.totalBudget ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
-              {errors.totalBudget && (
-                <p className="text-sm text-red-600">{errors.totalBudget}</p>
-              )}
+              {errors.totalBudget && <p className="text-sm text-red-600">{errors.totalBudget}</p>}
             </div>
 
             <div>

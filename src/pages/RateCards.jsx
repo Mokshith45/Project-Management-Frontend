@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import axios from '../api/axios'; // ✅ centralized axios instance
+import axios from 'axios';
 
+// Animation config
 const rowVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({
@@ -17,24 +18,34 @@ const RateCards = () => {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projectRates, setProjectRates] = useState([]);
 
+  const token = localStorage.getItem('token');
+  const axiosConfig = {
+    headers: { Authorization: `Bearer ${token}` },
+  };
+
+  // 🟡 Fetch global rate card and store as master template
   const fetchGlobalRates = async () => {
     try {
-      const res = await axios.get('/api/ratecards/global');
+      const res = await axios.get('http://localhost:8080/api/ratecards/global', axiosConfig);
       setGlobalRates(res.data);
     } catch (err) {
       console.error('Failed to load global rate card:', err);
     }
   };
 
+  // 🟡 Fetch all projects, then fetch client names for each
   const fetchProjectsList = async () => {
     try {
-      const res = await axios.get('/api/projects');
+      const res = await axios.get('http://localhost:8080/api/projects', axiosConfig);
       const projects = res.data;
 
       const enriched = await Promise.all(
         projects.map(async (project) => {
           try {
-            const clientRes = await axios.get(`/api/clients/${project.clientId}`);
+            const clientRes = await axios.get(
+              `http://localhost:8080/api/clients/${project.clientId}`,
+              axiosConfig
+            );
             return {
               ...project,
               client: clientRes.data.name || 'N/A',
@@ -52,6 +63,7 @@ const RateCards = () => {
     }
   };
 
+  // 🔁 Merge global template with project-specific values
   const mergeProjectRatesWithGlobal = (projectRatesFromAPI) => {
     return globalRates.map((global) => {
       const match = projectRatesFromAPI.find((p) => p.level === global.level);
@@ -63,13 +75,18 @@ const RateCards = () => {
     });
   };
 
+  // 🟡 Fetch project-specific rate card and normalize
   const fetchProjectRates = async (projectId) => {
     try {
-      const res = await axios.get(`/api/ratecards/project/${projectId}`);
+      const res = await axios.get(
+        `http://localhost:8080/api/ratecards/project/${projectId}`,
+        axiosConfig
+      );
       const mergedRates = mergeProjectRatesWithGlobal(res.data);
       setProjectRates(mergedRates);
     } catch (err) {
       console.error('Failed to load project rate card:', err);
+      // fallback: show all global levels with 0
       setProjectRates(globalRates.map((g) => ({ ...g, rate: 0 })));
     }
   };
@@ -85,6 +102,7 @@ const RateCards = () => {
     }
   }, [selectedProjectId, globalRates]);
 
+  // 🔧 Handlers
   const handleGlobalRateChange = (level, newRate) => {
     setGlobalRates((prev) =>
       prev.map((item) => (item.level === level ? { ...item, rate: newRate } : item))
@@ -97,9 +115,10 @@ const RateCards = () => {
     );
   };
 
+  // 💾 Save handlers
   const saveGlobalRate = async () => {
     try {
-      await axios.post('/api/ratecards/global', globalRates);
+      await axios.post('http://localhost:8080/api/ratecards/global', globalRates, axiosConfig);
       alert('Global rate card saved!');
     } catch (err) {
       console.error('Failed to save global rates:', err);
@@ -109,14 +128,17 @@ const RateCards = () => {
 
   const saveProjectRate = async () => {
     try {
-      await axios.post(`/api/ratecards/project/${selectedProjectId}`, projectRates);
+      await axios.post(
+        `http://localhost:8080/api/ratecards/project/${selectedProjectId}`,
+        projectRates,
+        axiosConfig
+      );
       alert('Project rate card saved!');
     } catch (err) {
       console.error('Failed to save project rates:', err);
       alert('Error saving project rate card.');
     }
   };
-
 
   return (
     <div className="space-y-12">

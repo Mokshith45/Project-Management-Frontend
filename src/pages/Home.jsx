@@ -9,7 +9,8 @@ import CountUp from 'react-countup';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import axiosInstance from '../api/axios'; 
+import axiosInstance from '../api/axios';
+import { jwtDecode } from 'jwt-decode';
 
 const carouselSettings = {
   infinite: true,
@@ -25,58 +26,59 @@ const carouselSettings = {
 
 const Home = () => {
   const navigate = useNavigate();
+
   const [stats, setStats] = useState([]);
   const [issues, setIssues] = useState([]);
   const [highlights, setHighlights] = useState([]);
   const [username, setUsername] = useState('Admin');
   const [showAllHighlights, setShowAllHighlights] = useState(false);
 
-  useEffect(() => {
-    const fetchUsername = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        console.log('Fetching username for user ID:', userName);
-        const decoded = jwtDecode(token);
-        const userId = decoded.id;
-        const res = await axiosInstance.get(`/api/users/${userId}`);
-        const userName = res.data.userName || 'Admin';
-        setUsername(
-          userName
-            .toLowerCase()
-            .split(' ')
-            .map(w => w[0].toUpperCase() + w.slice(1))
-            .join(' ')
-        );
-      } catch {
-        setUsername('Admin');
-      }
-    };
+  const capitalizeName = (name) => {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
-    fetchUsername();
+    useEffect(() => {
+    const token = localStorage.getItem('token');
+    try {
+      const decoded = jwtDecode(token);
+      const userId = decoded.id;
+
+      axiosInstance.get(`/api/users/${userId}`)
+        .then((res) => setUsername(capitalizeName(res.data.userName || 'Admin')))
+        .catch(() => setUsername('Admin'));
+    } catch {
+      setUsername('Admin');
+    }
   }, []);
 
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchContent = async () => {
       try {
         const [
-          clientsRes,
-          projectsRes,
-          positionsRes,
-          highlightsRes,
-          issuesRes
-        ] = await Promise.all([
-          axiosInstance.get('/api/clients'),
-          axiosInstance.get('/api/projects'),
-          axiosInstance.get('/api/open-positions'),
-          axiosInstance.get('/api/highlights'),
-          axiosInstance.get('/api/issues'),
-        ]);
+        clientsRes,
+        projectsRes,
+        positionsRes,
+        highlightsRes,
+        issuesRes,
+      ] = await Promise.all([
+        axiosInstance.get('/api/clients'),
+        axiosInstance.get('/api/projects'),
+        axiosInstance.get('/api/open-positions'),
+        axiosInstance.get('/api/highlights'),
+        axiosInstance.get('/api/issues'),
+      ]);
 
-        const clientsList = clientsRes.data || [];
-        const projectsList = projectsRes.data || [];
-        const positionsList = positionsRes.data || [];
-        const highlightsList = highlightsRes.data || [];
-        const issuesList = issuesRes.data || [];
+
+        const clientsList = Array.isArray(clientsRes.data) ? clientsRes.data : clientsRes.data?.data || [];
+        const projectsList = Array.isArray(projectsRes.data) ? projectsRes.data : projectsRes.data?.data || [];
+        const positionsList = Array.isArray(positionsRes.data) ? positionsRes.data : positionsRes.data?.data || [];
+        const highlightsList = Array.isArray(highlightsRes.data) ? highlightsRes.data : highlightsRes.data?.data || [];
+        const issuesList = Array.isArray(issuesRes.data) ? issuesRes.data : issuesRes.data?.data || [];
 
         const projectIdMap = {};
         projectsList.forEach(p => {
@@ -84,7 +86,7 @@ const Home = () => {
           projectIdMap[key] = p.name || p.projectName || p.title || 'Unnamed Project';
         });
 
-        setStats([
+        const newStats = [
           {
             title: 'Total Clients',
             value: clientsList.length,
@@ -105,36 +107,36 @@ const Home = () => {
             value: projectsList.filter(p => p.overBudget === true).length,
             icon: <FaMoneyBillWave className="text-2xl text-yellow-500" />,
           },
-        ]);
+        ];
 
-        setHighlights(
-          highlightsList.map(h => ({
-            id: h.id,
-            title: h.description,
-            project: projectIdMap[String(h.projectId)] || 'Unknown Project',
-            date: new Date(h.createdOn).toLocaleDateString(),
-          }))
-        );
+        const highlightsWithProjectNames = highlightsList.map(hl => ({
+          id: hl.id,
+          title: hl.description,
+          project: projectIdMap[String(hl.projectId)] || 'Unknown Project',
+          date: new Date(hl.createdOn).toLocaleDateString(),
+        }));
 
-        setIssues(
-          issuesList.map(issue => ({
-            ...issue,
-            project: projectIdMap[String(issue.projectId)] || 'Unknown Project',
-            createdDate: new Date(issue.createdOn).toLocaleDateString(),
-          }))
-        );
+        const issuesWithProjectNames = issuesList.map(issue => ({
+          ...issue,
+          project: projectIdMap[String(issue.projectId)] || 'Unknown Project',
+          date: new Date(issue.createdOn).toLocaleDateString(),
+        }));
+
+        setStats(newStats);
+        setHighlights(highlightsWithProjectNames);
+        setIssues(issuesWithProjectNames);
+
       } catch (err) {
-        console.error('Dashboard fetch failed:', err);
+        console.error('Failed to load dashboard data:', err);
       }
     };
 
-    fetchDashboardData();
+    fetchContent();
   }, []);
 
   const highlightTexts = highlights.map(
-    h => `🎉 ${h.title} - ${h.project} on ${h.date}`
+    (h) => `🎉 ${h.title} - ${h.project} on ${h.date}`
   );
-
 
   return (
     <div className="min-h-screen px-6 py-8 max-w-screen-xl mx-auto flex flex-col gap-8">
