@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import axiosInstance from '../../api/axios'; // Replace axios
 
 export const UserContext = createContext();
 
@@ -20,9 +21,7 @@ export const UserProvider = ({ children }) => {
       const decoded = jwtDecode(token);
       const userId = decoded.id;
 
-      axios.get(`http://localhost:8080/api/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      axiosInstance.get(`/api/users/${userId}`)
       .then(res => {
         setUser(res.data);
         setLoadingUser(false);

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { motion } from 'framer-motion';
 import { UserContext } from './UserContext';
 
@@ -30,30 +30,19 @@ const MyClient = () => {
   useEffect(() => {
     if (!user) return;
 
-    const token = localStorage.getItem('token');
-
     const fetchClientAndProjects = async () => {
       try {
         // Step 1: Get project by user
-        const projectRes = await axios.get(
-          `http://localhost:8080/api/projects/lead/${user.id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const projectRes = await axiosInstance.get(`/api/projects/lead/${user.id}`);
         const projectId = projectRes.data.id;
 
         // Step 2: Get client by project
-        const clientRes = await axios.get(
-          `http://localhost:8080/api/clients/${projectId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const clientRes = await axiosInstance.get(`/api/clients/${projectId}`);
         const clientData = clientRes.data;
         setClient(clientData);
 
         // Step 3: Get all projects for this client
-        const projectListRes = await axios.get(
-          `http://localhost:8080/api/projects/client/${clientData.id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const projectListRes = await axiosInstance.get(`/api/projects/client/${clientData.id}`);
         setProjects(projectListRes.data);
       } catch (err) {
         console.error('Error fetching client/project info:', err);

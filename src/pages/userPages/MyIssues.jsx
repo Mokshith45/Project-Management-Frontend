@@ -1,10 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import AddIssue from './AddIssue';
-import { UserContext } from './UserContext';
 import EditIssue from './EditIssue';
-
+import { UserContext } from './UserContext';
 
 const statusStyles = {
   OPEN: 'bg-red-100 text-red-800',
@@ -19,7 +18,6 @@ const severityStyles = {
   HIGH: 'bg-orange-100 text-orange-800',
   URGENT: 'bg-red-100 text-red-800',
 };
-
 
 const containerVariants = {
   hidden: {},
@@ -43,7 +41,6 @@ const MyIssues = () => {
   const [editModal, setEditModal] = useState(false);
   const [editIssueData, setEditIssueData] = useState(null);
 
-
   const [newIssue, setNewIssue] = useState({
     title: '',
     description: '',
@@ -55,28 +52,23 @@ const MyIssues = () => {
 
   useEffect(() => {
     if (!user) return;
-    const token = localStorage.getItem('token');
 
-    axios.get(`http://localhost:8080/api/projects/lead/${user.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => {
-      const project = res.data;
-      setProjectId(project.id);
-      setNewIssue(prev => ({
-        ...prev,
-        projectId: project.id,
-        createdBy: user.name,
-      }));
-      return axios.get(`http://localhost:8080/api/issues/project/${project.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+    axiosInstance.get(`/api/projects/lead/${user.id}`)
+      .then((res) => {
+        const project = res.data;
+        setProjectId(project.id);
+        setNewIssue(prev => ({
+          ...prev,
+          projectId: project.id,
+          createdBy: user.name,
+        }));
+        return axiosInstance.get(`/api/issues/project/${project.id}`);
+      })
+      .then((res) => setIssues(res.data))
+      .catch((err) => {
+        console.error('Error fetching issues:', err);
+        setError('Failed to load issues.');
       });
-    })
-    .then((res) => setIssues(res.data))
-    .catch((err) => {
-      console.error('Error fetching issues:', err);
-      setError('Failed to load issues.');
-    });
   }, [user]);
 
   const handleChange = (e) => {
@@ -86,39 +78,30 @@ const MyIssues = () => {
   const handleEditClick = (issue) => {
     setEditIssueData(issue);
     setEditModal(true);
-};
+  };
 
-const handleUpdateIssue = async (e) => {
-  e.preventDefault();
-  const token = localStorage.getItem('token');
-
-  try {
-    const res = await axios.put(`http://localhost:8080/api/issues/${editIssueData.id}`, editIssueData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const updated = issues.map((iss) => (iss.id === res.data.id ? res.data : iss));
-    setIssues(updated);
-    setEditModal(false);
-  } catch (err) {
-    console.error('Update failed:', err);
-    alert('Failed to update issue');
-  }
-};
-
-
+  const handleUpdateIssue = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axiosInstance.put(`/api/issues/${editIssueData.id}`, editIssueData);
+      const updated = issues.map((iss) => (iss.id === res.data.id ? res.data : iss));
+      setIssues(updated);
+      setEditModal(false);
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert('Failed to update issue');
+    }
+  };
 
   const handleAddIssue = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     const newEntry = {
       ...newIssue,
       createdOn: new Date().toISOString().split('T')[0],
     };
 
     try {
-      const res = await axios.post('http://localhost:8080/api/issues', newEntry, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axiosInstance.post('/api/issues', newEntry);
       setIssues([...issues, res.data]);
       setShowModal(false);
       setNewIssue({
@@ -136,11 +119,8 @@ const handleUpdateIssue = async (e) => {
   };
 
   const handleDelete = async (id) => {
-    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`http://localhost:8080/api/issues/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axiosInstance.delete(`/api/issues/${id}`);
       setIssues(issues.filter((issue) => issue.id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -152,7 +132,6 @@ const handleUpdateIssue = async (e) => {
 
   return (
     <motion.div className="p-6 max-w-7xl mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {/* Header */}
       <motion.div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-indigo-700">My Project Issues</h2>
         <motion.button
@@ -165,7 +144,6 @@ const handleUpdateIssue = async (e) => {
         </motion.button>
       </motion.div>
 
-      {/* Grid Cards */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -180,19 +158,19 @@ const handleUpdateIssue = async (e) => {
           >
             <div className="mb-2 text-sm text-gray-500 font-medium"></div>
             <div className="flex justify-between items-center mt-2">
-            <p className="text-md text-black-600 "><strong>{issue.description}</strong></p>
-            <span
-              className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${statusStyles[issue.status]}`}
-            >
-              {issue.status.replace('_', ' ')}
-            </span>
-          </div>
+              <p className="text-md text-black-600 "><strong>{issue.description}</strong></p>
+              <span
+                className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${statusStyles[issue.status]}`}
+              >
+                {issue.status.replace('_', ' ')}
+              </span>
+            </div>
 
             <p className="text-sm mt-2">
-            <strong>Severity:</strong>{' '}
-            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${severityStyles[issue.severity]}`}>
-              {issue.severity}
-            </span>
+              <strong>Severity:</strong>{' '}
+              <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${severityStyles[issue.severity]}`}>
+                {issue.severity}
+              </span>
             </p>
 
             <p className="text-sm text-gray-500 mt-2">
@@ -201,19 +179,14 @@ const handleUpdateIssue = async (e) => {
             <p className="text-sm text-gray-500">
               <strong>Created By:</strong> {issue.createdBy}
             </p>
-            <p className="text-sm text-gray-500">
-              <strong>Project ID:</strong> {issue.projectId}
-            </p>  
 
-            {/* Buttons */}
             <div className="mt-4 flex gap-3">
               <button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
-              onClick={() => handleEditClick(issue)}
-            >
-              Edit
-            </button>
-
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
+                onClick={() => handleEditClick(issue)}
+              >
+                Edit
+              </button>
               <button
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
                 onClick={() => handleDelete(issue.id)}
@@ -225,7 +198,6 @@ const handleUpdateIssue = async (e) => {
         ))}
       </motion.div>
 
-      {/* Modal */}
       <AnimatePresence>
         <AddIssue
           show={showModal}
@@ -235,20 +207,19 @@ const handleUpdateIssue = async (e) => {
           onChange={handleChange}
         />
       </AnimatePresence>
-      <AnimatePresence>
-      <EditIssue
-        show={editModal}
-        onClose={() => setEditModal(false)}
-        formData={editIssueData}
-        onChange={(e) =>
-          setEditIssueData({ ...editIssueData, [e.target.name]: e.target.value })
-        }
-        onSubmit={handleUpdateIssue}
-      />
-    </AnimatePresence>
 
+      <AnimatePresence>
+        <EditIssue
+          show={editModal}
+          onClose={() => setEditModal(false)}
+          formData={editIssueData}
+          onChange={(e) =>
+            setEditIssueData({ ...editIssueData, [e.target.name]: e.target.value })
+          }
+          onSubmit={handleUpdateIssue}
+        />
+      </AnimatePresence>
     </motion.div>
-    
   );
 };
 

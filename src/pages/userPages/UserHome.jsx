@@ -9,7 +9,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { jwtDecode } from 'jwt-decode';
 
 const UserHome = () => {
@@ -21,59 +21,68 @@ const UserHome = () => {
   const [timelineData, setTimelineData] = useState([]);
   const [budget, setBudget] = useState(0);
   const [spent, setSpent] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
     try {
       const decoded = jwtDecode(token);
       const id = decoded.id;
       setUserId(id);
 
-      axios.get(`http://localhost:8080/api/users/${id}`)
+      axiosInstance.get(`/api/users/${id}`)
         .then(res => setUserName(res.data.userName || 'User'))
         .catch(() => setUserName('User'));
 
-      axios.get(`http://localhost:8080/api/projects/lead/${id}`)
-        .then(res => {
+      axiosInstance.get(`/api/projects/lead/${id}`)
+        .then(async (res) => {
           const project = res.data;
           const projectId = project.id;
           const totalBudget = project.budget || 1;
           setBudget(totalBudget);
 
-          axios.get(`http://localhost:8080/api/projects/${projectId}/budget-spent`)
-            .then(res => {
-              const spentAmt = res.data || 0;
-              setSpent(spentAmt);
-              const left = ((totalBudget - spentAmt) / totalBudget) * 100;
-              setBudgetLeft(left);
-            })
-            .catch(err => {
-              console.error("Error fetching budget spent:", err);
-              setBudgetLeft(0);
-            });
+          try {
+            const spentRes = await axiosInstance.get(`/api/projects/${projectId}/budget-spent`);
+            const spentAmt = spentRes.data || 0;
+            setSpent(spentAmt);
+            const left = ((totalBudget - spentAmt) / totalBudget) * 100;
+            setBudgetLeft(left);
+          } catch (err) {
+            console.error("Error fetching budget spent:", err);
+            setBudgetLeft(0);
+          }
 
-          axios.get(`http://localhost:8080/api/issues/project/${projectId}`)
-            .then(res => {
-              const severityMap = {};
-              res.data.forEach(issue => {
-                severityMap[issue.severity] = (severityMap[issue.severity] || 0) + 1;
-              });
-              setIssueData(Object.entries(severityMap).map(([key, value]) => ({ name: key, value })));
+          try {
+            const issueRes = await axiosInstance.get(`/api/issues/project/${projectId}`);
+            const severityMap = {};
+            issueRes.data.forEach(issue => {
+              severityMap[issue.severity] = (severityMap[issue.severity] || 0) + 1;
             });
+            setIssueData(Object.entries(severityMap).map(([name, value]) => ({ name, value })));
+          } catch (err) {
+            console.error('Error loading issues:', err);
+            setIssueData([]);
+          }
 
-          axios.get(`http://localhost:8080/api/highlights/project/${projectId}`)
-            .then(res => {
-              const monthMap = {};
-              res.data.forEach(h => {
-                const month = new Date(h.createdOn).toLocaleString('default', { month: 'short' });
-                monthMap[month] = (monthMap[month] || 0) + 1;
-              });
-              setHighlightsData(Object.entries(monthMap).map(([month, count]) => ({ month, count })));
+          try {
+            const highlightRes = await axiosInstance.get(`/api/highlights/project/${projectId}`);
+            const monthMap = {};
+            highlightRes.data.forEach(h => {
+              const month = new Date(h.createdOn).toLocaleString('default', { month: 'short' });
+              monthMap[month] = (monthMap[month] || 0) + 1;
             });
+            const sorted = Object.entries(monthMap).sort(
+              ([a], [b]) => new Date(`${a} 1`) - new Date(`${b} 1`)
+            );
+            setHighlightsData(sorted.map(([month, count]) => ({ month, count })));
+          } catch (err) {
+            console.error('Error loading highlights:', err);
+            setHighlightsData([]);
+          }
 
+          // Placeholder static timeline (can be replaced by backend call later)
           setTimelineData([
             { stage: 'Design', days: 10 },
             { stage: 'Development', days: 20 },
@@ -82,13 +91,18 @@ const UserHome = () => {
             { stage: 'Release', days: 2 }
           ]);
         })
-        .catch(err => console.error("Error fetching project:", err));
+        .catch(err => {
+          console.error("Error fetching project:", err);
+          setError('Failed to load project data');
+        });
     } catch (err) {
       console.error('Invalid token');
+      setError('Invalid session');
     }
   }, []);
 
   if (!userId) return <div className="p-6">Loading user...</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   const isOverBudget = budgetLeft < 0;
   const displayBudget = Math.min(Math.abs(budgetLeft), 100).toFixed(2);
@@ -96,7 +110,11 @@ const UserHome = () => {
   const statusLabel = isOverBudget ? 'Over Budget 🚨' : 'Budget Left 💰';
   const headerColor = isOverBudget ? 'text-red-600' : 'text-indigo-600';
 
-  const currencyFormat = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+  const currencyFormat = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  });
   const spentDisplay = `${currencyFormat.format(spent)} spent of ${currencyFormat.format(budget)}`;
 
   return (
@@ -123,61 +141,75 @@ const UserHome = () => {
               })}
             />
           </div>
-          <p className="text-sm text-gray-600">{spentDisplay}</p>
+          <p className={`text-sm ${isOverBudget ? 'text-red-600' : 'text-gray-600'}`}>
+            {spentDisplay}
+          </p>
         </div>
 
         {/* Issue Severity */}
         <div className="bg-white rounded-xl p-4 shadow">
           <h4 className="text-center text-md font-semibold mb-4">Issue Severity</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={issueData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name }) => name}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {issueData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={["#10B981", "#3B82F6", "#FBBF24", "#EF4444"][index % 4]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          {issueData.length === 0 ? (
+            <p className="text-center text-gray-500 text-sm">No issue data available</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={issueData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name }) => name}
+                  outerRadius={70}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {issueData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={["#10B981", "#3B82F6", "#FBBF24", "#EF4444"][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Highlights */}
         <div className="bg-white rounded-xl p-4 shadow col-span-1 md:col-span-2">
           <h4 className="text-md font-semibold mb-4 text-center">Highlights Over Time</h4>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={highlightsData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#4F46E5" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {highlightsData.length === 0 ? (
+            <p className="text-center text-gray-500 text-sm">No highlights data available</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={highlightsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#4F46E5" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Timeline */}
         <div className="bg-white rounded-xl p-4 shadow col-span-1 md:col-span-2">
           <h4 className="text-md font-semibold mb-4 text-center">Project Timeline (Days per Phase)</h4>
-          <ResponsiveContainer width="100%" height={250}>
-            <ScatterChart>
-              <CartesianGrid />
-              <XAxis dataKey="stage" type="category" />
-              <YAxis dataKey="days" name="Days" />
-              <ZAxis range={[100]} />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Legend />
-              <Scatter name="Timeline" data={timelineData} fill="#6366F1" />
-            </ScatterChart>
-          </ResponsiveContainer>
+          {timelineData.length === 0 ? (
+            <p className="text-center text-gray-500 text-sm">Timeline data not available</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <ScatterChart>
+                <CartesianGrid />
+                <XAxis dataKey="stage" type="category" />
+                <YAxis dataKey="days" name="Days" />
+                <ZAxis range={[100]} />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                <Legend />
+                <Scatter name="Timeline" data={timelineData} fill="#6366F1" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

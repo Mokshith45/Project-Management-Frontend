@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { UserContext } from '../userPages/UserContext'; // adjust path as needed
-import axios from 'axios';
+import { UserContext } from '../userPages/UserContext'; // adjust path if needed
+import axiosInstance from '../../api/axios';
 
 const UserProfile = () => {
   const { user, setUser } = useContext(UserContext);
@@ -44,20 +44,14 @@ const UserProfile = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-
       const updatedUser = { ...user, password: newPassword };
 
-      const res = await axios.put(
-        `http://localhost:8080/api/users/${user.id}`,
-        updatedUser,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      const res = await axiosInstance.put(
+        `/api/users/${user.id}`,
+        updatedUser
       );
 
-      setUser(res.data); // update global context
-      console.log('user id', res.data.id);
+      setUser(res.data);
       setSuccess('Password changed successfully!');
       setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
 
@@ -65,14 +59,13 @@ const UserProfile = () => {
         setSuccess('');
         setShowModal(false);
       }, 1500);
-
     } catch (err) {
       console.error(err);
       setError('Failed to update password.');
     }
   };
 
-  if (!user) return <div>Loading user profile...</div>;
+  if (!user) return <div className="p-6">Loading user profile...</div>;
 
   return (
     <div className="bg-white shadow-md rounded-xl p-6 max-w-xl mx-auto mt-4">
@@ -114,6 +107,7 @@ const UserProfile = () => {
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2"
                 placeholder="Current Password"
+                required
               />
               <input
                 type="password"
@@ -122,6 +116,7 @@ const UserProfile = () => {
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2"
                 placeholder="New Password"
+                required
               />
               <input
                 type="password"
@@ -130,6 +125,7 @@ const UserProfile = () => {
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2"
                 placeholder="Confirm New Password"
+                required
               />
 
               {error && <p className="text-red-600 text-sm">{error}</p>}

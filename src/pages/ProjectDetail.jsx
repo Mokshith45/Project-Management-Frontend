@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import budgetSection from './BudgetSection';
 import {
   FaProjectDiagram, FaBuilding, FaCheckCircle,
   FaUserTie, FaUserCircle, FaBug, FaStar,

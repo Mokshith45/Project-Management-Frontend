@@ -1,7 +1,6 @@
-// src/pages/userpages/AddIssue.jsx
 import React, { useContext, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserContext } from './UserContext'; // ✅ use the correct path
+import { UserContext } from './UserContext';
 
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.85 },
@@ -11,11 +10,10 @@ const modalVariants = {
 
 const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
   const { user } = useContext(UserContext);
-  //console.log('AddIssue user:', user);
 
   useEffect(() => {
     if (user) {
-      onChange({ target: { name: 'createdBy', value: user.userName } }); // Auto-fill
+      onChange({ target: { name: 'createdBy', value: user.userName } });
     }
   }, [user]);
 
@@ -30,7 +28,7 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
       variants={modalVariants}
     >
       <motion.div
-        className="bg-white p-6 rounded-xl w-full max-w-lg shadow-xl relative"
+        className="bg-white p-6 rounded-xl w-full max-w-2xl shadow-xl relative"
         variants={modalVariants}
         transition={{ duration: 0.25 }}
       >
@@ -41,9 +39,13 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
           ✖
         </button>
         <h3 className="text-xl font-bold text-indigo-700 mb-4">➕ New Issue</h3>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Title</label>
+
+        <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Title */}
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Title <span className="text-red-600">*</span>
+            </label>
             <input
               type="text"
               name="title"
@@ -55,14 +57,19 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Severity</label>
+          {/* Severity */}
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Severity <span className="text-red-600">*</span>
+            </label>
             <select
               name="severity"
               value={formData.severity}
               onChange={onChange}
               className="w-full px-3 py-2 border border-gray-300 rounded"
+              required
             >
+              <option value="">Select</option>
               <option>Urgent</option>
               <option>High</option>
               <option>Medium</option>
@@ -70,8 +77,11 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+          {/* Description */}
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description <span className="text-red-600">*</span>
+            </label>
             <textarea
               name="description"
               value={formData.description}
@@ -83,9 +93,11 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
             />
           </div>
 
-          {/* 👇 Auto-filled from context, so just show it */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Created By</label>
+          {/* Created By */}
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Created By
+            </label>
             <input
               type="text"
               name="createdBy"
@@ -95,28 +107,36 @@ const AddIssue = ({ show, onClose, onSubmit, formData, onChange }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Status</label>
+          {/* Status */}
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status <span className="text-red-600">*</span>
+            </label>
             <select
               name="status"
               value={formData.status}
               onChange={onChange}
               className="w-full px-3 py-2 border border-gray-300 rounded"
+              required
             >
+              <option value="">Select</option>
               <option>Open</option>
               <option>In Progress</option>
               <option>Closed</option>
             </select>
           </div>
 
-          <motion.button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Submit Issue
-          </motion.button>
+          {/* Submit Button */}
+          <div className="col-span-2 mt-2">
+            <motion.button
+              type="submit"
+              className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Submit Issue
+            </motion.button>
+          </div>
         </form>
       </motion.div>
     </motion.div>

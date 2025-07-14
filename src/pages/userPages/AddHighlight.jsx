@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import axiosInstance from '../../api/axios';
 import { UserContext } from './UserContext';
 
 const AddHighlight = () => {
@@ -12,16 +12,11 @@ const AddHighlight = () => {
   const [form, setForm] = useState({ description: '' });
   const [error, setError] = useState('');
 
-  // ✅ Fetch projectId for logged-in user
   useEffect(() => {
     if (!user) return;
 
-    const token = localStorage.getItem('token');
-
-    axios
-      .get(`http://localhost:8080/api/projects/lead/${user.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    axiosInstance
+      .get(`/api/projects/lead/${user.id}`)
       .then((res) => {
         setProjectId(res.data.id);
       })
@@ -43,8 +38,6 @@ const AddHighlight = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    
     const newHighlight = {
       description: form.description,
       createdOn: new Date().toISOString().split('T')[0],
@@ -52,10 +45,7 @@ const AddHighlight = () => {
     };
 
     try {
-      await axios.post('http://localhost:8080/api/highlights', newHighlight, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      await axiosInstance.post('/api/highlights', newHighlight);
       navigate('/user/my-highlights');
     } catch (err) {
       console.error('Error submitting highlight:', err);

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
-import { UserContext } from './UserContext'; // Update path based on your project structure
+import axiosInstance from '../../api/axios';
+import { UserContext } from './UserContext'; // Adjust path as needed
 
 const containerVariants = {
   hidden: { opacity: 0, y: 30 },
@@ -28,37 +28,27 @@ const MyProject = () => {
   const [leadName, setLeadName] = useState('');
 
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const token = localStorage.getItem('token');
+    axiosInstance.get(`/api/projects/lead/${user.id}`)
+      .then(async (res) => {
+        const projectData = res.data;
+        setProject(projectData);
 
-  axios.get(`http://localhost:8080/api/projects/lead/${user.id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then(async (res) => {
-      const projectData = res.data;
-      setProject(projectData);
-
-      // Fetch the project lead name
-      try {
-        const leadRes = await axios.get(`http://localhost:8080/api/project-leads/project/${projectData.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        // leadRes.data.user.name or adjust based on backend structure
-        const name = leadRes.data.userName ;
-        setLeadName(name);
-      } catch (leadErr) {
-        console.error("Failed to fetch project lead name:", leadErr);
-        setLeadName("Unavailable");
-      }
-    })
-    .catch(err => {
-      console.error("Failed to load project:", err);
-      setError("Failed to load project details.");
-    });
-}, [user]);
-
+        try {
+          const leadRes = await axiosInstance.get(`/api/project-leads/project/${projectData.id}`);
+          const name = leadRes.data.userName;
+          setLeadName(name);
+        } catch (leadErr) {
+          console.error("Failed to fetch project lead name:", leadErr);
+          setLeadName("Unavailable");
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load project:", err);
+        setError("Failed to load project details.");
+      });
+  }, [user]);
 
   if (loadingUser) return <div className="p-6">Loading user info...</div>;
   if (userError) return <div className="p-6 text-red-600">{userError}</div>;
@@ -71,7 +61,6 @@ const MyProject = () => {
     department,
     status,
     budget,
-    projectLeadName,
   } = project;
 
   return (
