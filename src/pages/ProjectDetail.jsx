@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import BudgetSection from './BudgetSection';
 import { motion } from 'framer-motion';
 import {
   FaProjectDiagram,
@@ -81,6 +82,10 @@ const [globalRateMap, setGlobalRateMap] = useState({});
 
         const highlightsRes = await axios.get(`http://localhost:8080/api/highlights/project/${id}`, { headers });
         setHighlights(highlightsRes.data || []);
+
+        const openPositionsRes = await axios.get(`http://localhost:8080/api/open-positions/project/${id}`, { headers });
+        setOpenPositions(openPositionsRes.data || []);
+        console.log(openPositionsRes.data);
 
         const requiredRes = await axios.get(`http://localhost:8080/api/resource-requirements/project/${id}`, { headers });
         setRequiredResources(requiredRes.data || []);
@@ -265,62 +270,11 @@ setBudgetBreakup(breakup);
         )}
 
             {/* Resource-wise Billing Summary */}
-            {allocatedResources.length > 0 && (
-              <div className="mt-10 bg-white border shadow rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-indigo-700 mb-4">📄 Resource-wise Billing Summary</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm border border-gray-200 rounded-xl">
-                    <thead className="bg-gray-100 text-gray-800">
-                      <tr>
-                        <th className="py-2 px-4 text-left">Resource</th>
-                        <th className="py-2 px-4 text-left">Level</th>
-                        <th className="py-2 px-4 text-left">Start Date</th>
-                        <th className="py-2 px-4 text-left">End Date</th>
-                        <th className="py-2 px-4 text-left">Days Worked</th>
-                        <th className="py-2 px-4 text-left">Rate/Day (₹)</th>
-                        <th className="py-2 px-4 text-left">Total (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allocatedResources.map((res) => {
-                        const rate = projectRateMap[res.level] || globalRateMap[res.level] || 0;
-                        const start = new Date(res.startDate);
-                        const end = new Date(res.endDate);
-                        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-                        const total = rate * days;
-
-                        return (
-                          <tr key={res.id} className="border-t hover:bg-gray-50">
-                            <td className="py-2 px-4 font-medium">{res.resourceName}</td>
-                            <td className="py-2 px-4">{res.level}</td>
-                            <td className="py-2 px-4">{start.toLocaleDateString()}</td>
-                            <td className="py-2 px-4">{end.toLocaleDateString()}</td>
-                            <td className="py-2 px-4">{days}</td>
-                            <td className="py-2 px-4">₹ {rate.toLocaleString()}</td>
-                            <td className="py-2 px-4 font-semibold">₹ {total.toLocaleString()}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot className="bg-gray-50 border-t font-semibold">
-                      <tr>
-                        <td colSpan="6" className="py-2 px-4 text-right">Grand Total:</td>
-                        <td className="py-2 px-4 text-indigo-800">
-                          ₹{' '}
-                          {allocatedResources.reduce((acc, res) => {
-                            const rate = projectRateMap[res.level] || globalRateMap[res.level] || 0;
-                            const start = new Date(res.startDate);
-                            const end = new Date(res.endDate);
-                            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-                            return acc + rate * days;
-                          }, 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            )}
+            <BudgetSection
+            projectId={id}
+            budgetQuoted={budgetQuoted}
+            allocatedResources={allocatedResources}
+          />
 
 
       {/* Highlights and Issues Section */}
