@@ -8,6 +8,9 @@ const Resources = () => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [projectsList, setProjectsList] = useState([]); // to populate dropdown
+
 
   // 🔁 Fetch resources & project names
   useEffect(() => {
@@ -33,6 +36,7 @@ const Resources = () => {
 
         setProjectMap(projMap);
         setResources(resourcesList);
+        setProjectsList(projectsList); // below setProjectMap
       } catch (err) {
         console.error('Failed to load resources:', err);
         setError('Error loading resources');
@@ -45,10 +49,16 @@ const Resources = () => {
   }, []);
 
   const filteredData = resources.filter((res) => {
-    if (filter === 'available') return !res.allocated;
-    if (filter === 'allocated') return res.allocated;
-    return true;
-  });
+  const matchesAllocation =
+    filter === 'available' ? !res.allocated :
+    filter === 'allocated' ? res.allocated :
+    true;
+
+  const matchesProject =
+    projectFilter === 'all' ? true : String(res.projectId) === String(projectFilter);
+    return matchesAllocation && matchesProject;
+});
+
 
   return (
     <motion.div
@@ -57,19 +67,39 @@ const Resources = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-indigo-700">🧑‍💻 Resource Management</h2>
+      <div className="flex flex-col sm:flex-row gap-3 justify-end items-center mb-4">
+      <div className="flex items-center gap-2">
+        <label className="text-sm text-gray-600">Allocation:</label>
         <motion.select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           whileHover={{ scale: 1.03 }}
-          className="border border-gray-300 text-sm rounded-md px-3 py-2 text-gray-700"
+          className="border border-gray-300 text-sm rounded-md px-3 py-1.5 text-gray-700"
         >
           <option value="all">All</option>
           <option value="available">Available</option>
           <option value="allocated">Allocated</option>
         </motion.select>
       </div>
+
+      <div className="flex items-center gap-2">
+        <label className="text-sm text-gray-600">Project:</label>
+        <motion.select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          whileHover={{ scale: 1.03 }}
+          className="border border-gray-300 text-sm rounded-md px-3 py-1.5 text-gray-700"
+        >
+          <option value="all">All Projects</option>
+          {projectsList.map((proj) => (
+            <option key={proj.id} value={proj.id}>
+              {proj.projectName || proj.name}
+            </option>
+          ))}
+        </motion.select>
+      </div>
+    </div>
+
 
       {/* Loading / Error */} 
       {loading ? (

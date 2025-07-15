@@ -1,491 +1,365 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import BudgetSection from './BudgetSection';
+import axios from '../api/axios';
 import { motion } from 'framer-motion';
-import {
-  FaProjectDiagram,
-  FaBuilding,
-  FaCheckCircle,
-  FaUserTie,
-  FaUserCircle,
-  FaBug,
-  FaStar,
-  FaUsers,
-  FaPlus,
-  FaClipboardList,
-} from 'react-icons/fa';
-
+import { FaEdit, FaSave, FaTimes, FaCheckCircle, FaUsers, FaUserTie, FaClipboardList, FaStar, FaBug } from 'react-icons/fa';
+import BudgetSection from './BudgetSection';
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [project, setProject] = useState(null);
-  const [leadName, setLeadName] = useState('Loading...');
-  const [clientName, setClientName] = useState('Loading...');
+  const [leadName, setLeadName] = useState('');
+  const [clientName, setClientName] = useState('');
   const [issues, setIssues] = useState([]);
   const [highlights, setHighlights] = useState([]);
   const [requiredResources, setRequiredResources] = useState([]);
   const [allocatedResources, setAllocatedResources] = useState([]);
+  const [openPositions, setOpenPositions] = useState([]);
+  const [budgetQuoted, setBudgetQuoted] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Added state for toggle sections
-  const [openPositions, setOpenPositions] = useState([]);
-
-  const [budgetQuoted, setBudgetQuoted] = useState(0);
-  const [budgetSpent, setBudgetSpent] = useState(0);
-
-  const [budgetStatus, setBudgetStatus] = useState('');
-const [budgetBreakup, setBudgetBreakup] = useState({});
-const [projectRateMap, setProjectRateMap] = useState({});
-const [globalRateMap, setGlobalRateMap] = useState({});
-
-
-
-  const toTitleCase = (str) =>
-    str?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()) || 'N/A';
+  const [showBudget, setShowBudget] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableProject, setEditableProject] = useState({});
 
   useEffect(() => {
-    if (budgetQuoted && budgetSpent) {
-        if (budgetSpent > budgetQuoted) {
-        setBudgetStatus('exceeded');
-        } else if (budgetSpent < budgetQuoted) {
-        setBudgetStatus('under');
-        } else {
-        setBudgetStatus('matched');
-        }
-    }
-    }, [budgetQuoted, budgetSpent]);
-
-  useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchProjectDetails = async () => {
       try {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        const projectRes = await axios.get(`http://localhost:8080/api/projects/${id}`, { headers });
+        const projectRes = await axios.get(`/api/projects/${id}`, { headers });
         const projectData = projectRes.data;
         setProject(projectData);
-
-        if (projectData.clientId) {
-          const clientRes = await axios.get(`http://localhost:8080/api/clients/${projectData.clientId}`, { headers });
-          setClientName(clientRes.data?.name || 'Unknown Client');
-        }
-
-        const leadRes = await axios.get(`http://localhost:8080/api/project-leads/project/${projectData.id}`, { headers });
-        setLeadName(leadRes.data?.userName || 'Unknown Lead');
-
-        const issuesRes = await axios.get(`http://localhost:8080/api/issues/project/${id}`, { headers });
-        setIssues(issuesRes.data || []);
-
-        const highlightsRes = await axios.get(`http://localhost:8080/api/highlights/project/${id}`, { headers });
-        setHighlights(highlightsRes.data || []);
-
-        const openPositionsRes = await axios.get(`http://localhost:8080/api/open-positions/project/${id}`, { headers });
-        setOpenPositions(openPositionsRes.data || []);
-        console.log(openPositionsRes.data);
-
-        const requiredRes = await axios.get(`http://localhost:8080/api/resource-requirements/project/${id}`, { headers });
-        setRequiredResources(requiredRes.data || []);
-
-        const allocatedRes = await axios.get(`http://localhost:8080/api/resources/project/${id}`, { headers });
-        setAllocatedResources(allocatedRes.data || []);
-        // Fetch rate cards
-      const [projectRatesRes, globalRatesRes] = await Promise.all([
-        axios.get(`http://localhost:8080/api/ratecards/project/${id}`, { headers }),
-        axios.get(`http://localhost:8080/api/ratecards/global`, { headers })
-      ]);
-
-      const projectRates = projectRatesRes.data || [];
-      const globalRates = globalRatesRes.data || [];
-
-      // Convert rate cards to lookup maps
-      const projectRateObj = Object.fromEntries(
-      projectRates.map((r) => [r.level, r.rate])
-    );
-    const globalRateObj = Object.fromEntries(
-      globalRates.map((r) => [r.level, r.rate])
-    );
-
-    setProjectRateMap(projectRateObj);
-    setGlobalRateMap(globalRateObj);
-
-// Step 2: Compute budget breakup by resource duration testing
-const breakup = {};
-
-(allocatedRes.data || []).forEach((res) => {
-  const level = res.level;
-  const rate = projectRateMap[level] || globalRateMap[level] || 0;
-
-  const start = new Date(res.startDate);
-  const end = new Date(res.endDate);
-  const timeDiff = Math.abs(end - start);
-  const numDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // include both days
-
-  const cost = rate * numDays;
-
-  if (!breakup[level]) {
-    breakup[level] = { rate, quantity: 1, days: numDays, total: cost };
-  } else {
-    breakup[level].quantity += 1;
-    breakup[level].days += numDays;
-    breakup[level].total += cost;
-  }
-});
-
-setBudgetBreakup(breakup);
-
-        // Budget quoted
+        setEditableProject({
+          projectName: projectData.projectName,
+          department: projectData.department,
+          type: projectData.type,
+          status: projectData.status,
+        });
         setBudgetQuoted(projectData.budget || 0);
 
-        // Budget spent
-        const budgetSpentRes = await axios.get(`http://localhost:8080/api/projects/${id}/budget-spent`, { headers });
-        setBudgetSpent(budgetSpentRes.data || 0);
+        const [
+          clientRes,
+          leadRes,
+          issuesRes,
+          highlightsRes,
+          reqRes,
+          allocRes,
+          openRes
+        ] = await Promise.all([
+          axios.get(`/api/clients/${projectData.clientId}`, { headers }),
+          axios.get(`/api/project-leads/project/${id}`, { headers }),
+          axios.get(`/api/issues/project/${id}`, { headers }),
+          axios.get(`/api/highlights/project/${id}`, { headers }),
+          axios.get(`/api/resource-requirements/project/${id}`, { headers }),
+          axios.get(`/api/resources/project/${id}`, { headers }),
+          axios.get(`/api/open-positions/project/${id}`, { headers }),
+        ]);
 
-        // fetch users and their types
-        // const xx = await axios.get('http://localhost:8080/api/resources/project/' + id, { headers });
-        // // console.log(xx.data);
+        setClientName(clientRes.data?.name || 'Unknown');
+        setLeadName(leadRes.data?.userName || 'Unknown');
+        setIssues(issuesRes.data || []);
+        setHighlights(highlightsRes.data || []);
+        setRequiredResources(reqRes.data || []);
+        setAllocatedResources(allocRes.data || []);
 
-
-        // const yy = await axios.get('http://localhost:8080/api/ratecards/project/' + id, { headers });
-        // // console.log(yy.data);
-
-        // const zz = await axios.get('http://localhost:8080/api/ratecards/global', { headers });
-        // console.log({
-        //   resources: xx.data,
-        //   ratecards: yy.data,
-        //   globalRatecards: zz.data
-        // });
-        
-
-
-        // Compute open positions
-        const open = (requiredRes.data || []).map((req) => {
-          const allocatedCount = (allocatedRes.data || []).filter((r) => r.level === req.level).length;
+        const openFiltered = (reqRes.data || []).map((req) => {
+          const allocatedCount = (allocRes.data || []).filter((r) => r.level === req.level).length;
           return {
             level: req.level,
             required: req.quantity,
             remaining: req.quantity - allocatedCount,
           };
-        }).filter(pos => pos.remaining > 0);
+        }).filter((pos) => pos.remaining > 0);
 
-        setOpenPositions(open);
+        setOpenPositions(openFiltered);
       } catch (err) {
-        console.error('Error fetching project data:', err);
-        setError('Failed to load project details.');
+        console.error('Error loading project:', err);
+        setError('Failed to load project data.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchAllData();
-    } else {
-      setError('Invalid project ID.');
-      setLoading(false);
-    }
+    fetchProjectDetails();
   }, [id]);
-
-
-
-  if (loading) return <div className="text-center py-20 text-gray-500 text-lg">Loading...</div>;
-  if (error) return <div className="text-center py-20 text-red-600 text-lg">{error}</div>;
 
   const allocatedMap = allocatedResources.reduce((acc, res) => {
     acc[res.level] = (acc[res.level] || 0) + 1;
     return acc;
   }, {});
 
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this project?');
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/projects/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      navigate('/projects');
+    } catch (err) {
+      alert('Failed to delete project');
+    }
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleInputChange = (e) => {
+    setEditableProject({ ...editableProject, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const updated = { ...project, ...editableProject };
+      await axios.put(`/api/projects/${id}`, updated, { headers });
+
+      setProject(updated);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to save project:', err);
+    }
+  };
+
+  const toTitleCase = (str) =>
+    str?.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) || 'N/A';
+
+  if (loading) return <div className="text-center text-gray-500 py-10">Loading...</div>;
+  if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
+
   return (
     <motion.div
-      className="max-w-5xl mx-auto mt-2 bg-white shadow-2xl rounded-2xl p-8 border border-gray-200"
-      initial={{ opacity: 0, y: 40 }}
+      className="max-w-6xl mx-auto p-6 bg-white rounded-2xl shadow-xl space-y-6 mt-6"
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.5 }}
     >
-      {/* Project Header */}
-      <div className="flex justify-between items-center flex-wrap gap-4 border-b pb-4 mb-6">
+      {/* Header Section */}
+      <div className="flex justify-between items-start border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-indigo-800">{project?.projectName || 'Unnamed Project'}</h1>
-          <p className="text-sm text-gray-500 mt-1">Project ID: {project?.id || 'N/A'}</p>
+          {isEditing ? (
+            <input
+              className="text-2xl font-bold border px-3 py-1 rounded text-indigo-700"
+              name="projectName"
+              value={editableProject.projectName}
+              onChange={handleInputChange}
+            />
+          ) : (
+            <h1 className="text-2xl font-bold text-indigo-800">{project.projectName}</h1>
+          )}
+          <p className="text-sm text-gray-500">Project ID: {project.id}</p>
         </div>
-        <div>
-          <span
-            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${
-              project?.status === 'ACTIVE' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-            }`}
-          >
-            <FaCheckCircle className="text-base" />
-            {toTitleCase(project?.status)}
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 text-sm rounded-full ${
+            project.status === 'ACTIVE'
+              ? 'bg-yellow-100 text-yellow-700'
+              : 'bg-green-100 text-green-700'
+          }`}>
+            <FaCheckCircle className="inline-block mr-1" />
+            {toTitleCase(project.status)}
           </span>
+
+          {!isEditing ? (
+            <button className="text-indigo-600" onClick={handleEditToggle}>
+              <FaEdit />
+            </button>
+          ) : (
+            <>
+              <button className="text-green-600" onClick={handleSave}>
+                <FaSave />
+              </button>
+              <button className="text-red-500" onClick={handleEditToggle}>
+                <FaTimes />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Main Info Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8 text-medium text-gray-900">
-        {[
-          { icon: <FaProjectDiagram />, label: 'Type', value: project?.type },
-          { icon: <FaBuilding />, label: 'Department', value: project?.department },
-          { icon: <FaUserTie />, label: 'Project Lead', value: leadName },
-          { icon: <FaUserCircle />, label: 'Client', value: clientName },
-        ].map((info, idx) => (
-          <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg shadow-sm">
-            {info.icon}
-            <span>
-              <span className="text-gray-500 font-medium">{info.label}:</span>{' '}
-              <span className="font-semibold">{info.value || 'N/A'}</span>
-            </span>
+      {/* Project Info */}
+      <div className="grid sm:grid-cols-2 gap-4 text-sm">
+        {['department', 'type', 'status'].map((field) => (
+          <div key={field} className="p-3 rounded-lg bg-gray-50 border">
+            <span className="text-gray-500 font-medium capitalize">{field}:</span>{' '}
+            {isEditing ? (
+              <input
+                name={field}
+                value={editableProject[field]}
+                onChange={handleInputChange}
+                className="ml-2 border-b border-indigo-300 bg-transparent focus:outline-none"
+              />
+            ) : (
+              <span className="font-semibold ml-1">{editableProject[field]}</span>
+            )}
           </div>
         ))}
+        <div className="p-3 rounded-lg bg-gray-50 border">
+          <span className="text-gray-500 font-medium">Client:</span> {clientName}
+        </div>
+        <div className="p-3 rounded-lg bg-gray-50 border">
+          <span className="text-gray-500 font-medium">Lead:</span> {leadName}
+        </div>
       </div>
-      {/* Budget Section */}
-        <div className="mt-6">
-        <div className="flex flex-wrap justify-between items-center text-sm text-gray-800 mb-2">
-            <p><strong>Budget Spent:</strong> ${budgetSpent.toLocaleString()}</p>
-            <p><strong>Budget Quoted:</strong> ${budgetQuoted.toLocaleString()}</p>
-        </div>
 
-        <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden shadow-sm">
-            <div
-            className="h-full bg-indigo-500 transition-all duration-500"
-            style={{ width: `${Math.min((budgetSpent / budgetQuoted) * 100, 100)}%` }}
-            ></div>
-        </div>
-        </div>
-
-        {budgetStatus && (
-            <div className="mt-2 text-sm font-medium">
-                {budgetStatus === 'exceeded' && (
-                <p className="text-red-600">⚠ Budget Exceeded by  ${(budgetSpent - budgetQuoted).toLocaleString()}</p>
-                )}
-                {budgetStatus === 'under' && (
-                <p className="text-green-600">✅ Within Budget. Remaining: ${(budgetQuoted - budgetSpent).toLocaleString()}</p>
-                )}
-                {budgetStatus === 'matched' && (
-                <p className="text-blue-600">ℹ Budget Fully Utilized</p>
-                )}
-            </div>
-        )}
-
-            {/* Resource-wise Billing Summary */}
-            <BudgetSection
+      {/* Budget Toggle */}
+      <div>
+        <button
+          className="text-sm text-indigo-600 hover:underline mb-2"
+          onClick={() => setShowBudget(!showBudget)}
+        >
+          {showBudget ? '▲ Hide Budget Breakdown' : '▼ Show Budget Breakdown'}
+        </button>
+        {showBudget && (
+          <BudgetSection
             projectId={id}
             budgetQuoted={budgetQuoted}
             allocatedResources={allocatedResources}
           />
-
-
-      {/* Highlights and Issues Section */}
-      {(highlights.length > 0 || issues.length > 0) && (
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Highlights Section */}
-            {highlights.length > 0 && (
-            <div>
-                <h2 className="text-xl font-semibold text-blue-700 flex items-center gap-2 mb-4">
-                <FaStar className="text-yellow-500" /> Highlights
-                </h2>
-                <div className="flex flex-col gap-4">
-                {highlights.map((item) => (
-                    <div key={item.id} className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-md">
-                    <h3 className="text-lg font-bold text-blue-800 mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-700 mb-3">
-                        <span className="font-semibold">Description:</span> {item.description}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                        <span className="font-semibold">Created On:</span>{' '}
-                        {new Date(item.createdOn).toLocaleDateString()}
-                    </p>
-                    </div>
-                ))}
-                </div>
-            </div>
-            )}
-
-            {/* Issues Section */}
-            {issues.length > 0 && (
-            <div>
-                <h2 className="text-xl font-semibold text-red-700 flex items-center gap-2 mb-4">
-                <FaBug className="text-red-500" /> Issues
-                </h2>
-                <div className="flex flex-col gap-4">
-                {issues.map((item) => (
-                    <div key={item.id} className="bg-red-50 p-5 rounded-2xl border border-red-200 shadow-md">
-                    <h3 className="text-lg font-bold text-red-800 mb-2">{item.title}</h3>
-                    <p className="text-sm text-gray-700 mb-2">
-                        <span className="font-semibold">Description:</span> {item.description}
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                        <p>
-                        <span className="font-semibold">Severity:</span>{' '}
-                        <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
-                            item.severity === 'HIGH'
-                                ? 'bg-red-600'
-                                : item.severity === 'MEDIUM'
-                                ? 'bg-orange-500'
-                                : 'bg-green-500'
-                            }`}
-                        >
-                            {item.severity}
-                        </span>
-                        </p>
-                        <p>
-                        <span className="font-semibold">Status:</span>{' '}
-                        <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-white text-xs ${
-                            item.status === 'OPEN'
-                                ? 'bg-yellow-600'
-                                : item.status === 'RESOLVED'
-                                ? 'bg-green-600'
-                                : 'bg-gray-500'
-                            }`}
-                        >
-                            {item.status}
-                        </span>
-                        </p>
-                        <p>
-                        <span className="font-semibold">Created By:</span> {item.createdBy}
-                        </p>
-                        <p>
-                        <span className="font-semibold">Created On :</span>{' '}
-                        {new Date(item.createdDate).toLocaleDateString()}
-                        </p>
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </div>
-            )}
-        </div>
         )}
+      </div>
 
-
-      <div className="mt-12">
-        <h2 className="text-xl font-semibold text-indigo-700 flex items-center gap-2 mb-4">
-          <FaUsers className="text-indigo-500" /> Resource Allocation Overview
+      {/* Allocation Overview */}
+      <div>
+        <h2 className="text-lg font-semibold text-indigo-700 flex items-center gap-2 mb-2">
+          <FaUsers /> Allocation Overview
         </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white shadow rounded-xl overflow-hidden border border-gray-200">
-            <thead className="bg-indigo-50 text-indigo-800 text-sm">
+        <table className="w-full text-sm border rounded-xl">
+          <thead className="bg-indigo-50 text-indigo-700">
+            <tr>
+              <th className="px-4 py-2 text-left">Level</th>
+              <th className="px-4 py-2 text-center">Required</th>
+              <th className="px-4 py-2 text-center">Allocated</th>
+              <th className="px-4 py-2 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requiredResources.map((res, idx) => {
+              const allocated = allocatedMap[res.level] || 0;
+              const isFilled = allocated >= res.quantity;
+              return (
+                <tr key={idx} className="border-t text-center">
+                  <td className="px-4 py-2 text-left">{res.level}</td>
+                  <td>{res.quantity}</td>
+                  <td>{allocated}</td>
+                  <td>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      isFilled ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {isFilled ? 'Filled' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Allocated Resources */}
+      {allocatedResources.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-indigo-700 flex items-center gap-2 mb-2">
+            <FaUserTie /> Allocated Resources
+          </h2>
+          <table className="w-full text-sm border rounded-xl shadow-sm">
+            <thead className="bg-indigo-50 text-indigo-700">
               <tr>
-                <th className="py-2 px-4 text-left">Level</th>
-                <th className="py-2 px-4 text-left">Required</th>
-                <th className="py-2 px-4 text-left">Allocated</th>
-                <th className="py-2 px-4 text-left">Status</th>
+                <th className="px-4 py-2 text-left">Name</th>
+                <th className="px-4 py-2">Level</th>
+                <th className="px-4 py-2">Start</th>
+                <th className="px-4 py-2">End</th>
               </tr>
             </thead>
             <tbody>
-              {requiredResources.map((res, idx) => {
-                const allocated = allocatedMap[res.level] || 0;
-                const isComplete = allocated >= res.quantity;
-
-                return (
-                  <tr
-                    key={idx}
-                    className={`text-sm ${isComplete ? 'bg-green-50' : 'bg-yellow-50'} border-b`}
-                  >
-                    <td className="py-2 px-4 font-medium">{res.level}</td>
-                    <td className="py-2 px-4">{res.quantity}</td>
-                    <td className="py-2 px-4">{allocated}</td>
-                    <td className="py-2 px-4">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                          isComplete
-                            ? 'bg-green-200 text-green-800'
-                            : 'bg-yellow-200 text-yellow-800'
-                        }`}
-                      >
-                        {isComplete ? 'Filled' : 'Pending'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {allocatedResources.map((res) => (
+                <tr key={res.id} className="border-t text-center">
+                  <td className="px-4 py-2 text-left">{res.resourceName}</td>
+                  <td>{res.level}</td>
+                  <td>{new Date(res.startDate).toLocaleDateString()}</td>
+                  <td>{new Date(res.endDate).toLocaleDateString()}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
 
+      {/* Open Positions */}
       {openPositions.length > 0 && (
-        <div className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-yellow-700 flex items-center gap-2">
-              <FaClipboardList className="text-yellow-500" />
-              Open Positions
-            </h2>
-            <button
-              onClick={() => navigate('/open-positions/add')}
-              className="flex items-center gap-2 px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition text-sm"
-            >
-              <FaPlus />
-              Add Position
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-yellow-700 mb-2 flex items-center gap-2">
+            <FaClipboardList /> Open Positions
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
             {openPositions.map((pos, idx) => (
-              <div
-                key={idx}
-                className="p-4 border border-yellow-200 rounded-xl bg-yellow-50"
-              >
-                <p className="text-gray-800 font-semibold">Level: {pos.level}</p>
-                <p className="text-gray-700">Required: {pos.required}</p>
-                <p className="text-gray-700">Still Open: {pos.remaining}</p>
+              <div key={idx} className="p-4 border rounded-lg bg-yellow-50 text-sm">
+                <p><strong>Level:</strong> {pos.level}</p>
+                <p><strong>Required:</strong> {pos.required}</p>
+                <p><strong>Remaining:</strong> {pos.remaining}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-
-      {/* Resources Table */}
-        {allocatedResources.length > 0 && (
-        <div className="mt-10">
-            <h2 className="text-xl font-semibold text-indigo-700 flex items-center gap-2 mb-4">
-            <FaUserTie className="text-indigo-500" /> Allocated Resources
-            </h2>
-            <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300 rounded-xl shadow-sm">
-                <thead>
-                <tr className="bg-indigo-100 text-indigo-800 text-left text-sm">
-                    <th className="py-2 px-4">Resource Name</th>
-                    <th className="py-2 px-4">Level</th>
-                    <th className="py-2 px-4">Start Date</th>
-                    <th className="py-2 px-4">End Date</th>
-                </tr>
-                </thead>
-                <tbody>
-                {allocatedResources.map((res) => (
-                    <tr key={res.id} className="border-t text-sm hover:bg-gray-50">
-                    <td className="py-2 px-4">{res.resourceName}</td>
-                    <td className="py-2 px-4">
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                        {res.level}
-                        </span>
-                    </td>
-                    <td className="py-2 px-4">
-                        {new Date(res.startDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-2 px-4">
-                        {new Date(res.endDate).toLocaleDateString()}
-                    </td>
-                    </tr>
+      {/* Highlights and Issues */}
+      {(highlights.length > 0 || issues.length > 0) && (
+        <div className="grid sm:grid-cols-2 gap-6">
+          {highlights.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                <FaStar /> Highlights
+              </h2>
+              <div className="space-y-3">
+                {highlights.map((h) => (
+                  <div key={h.id} className="p-3 bg-blue-50 border rounded-lg">
+                    <h3 className="font-bold">{h.title}</h3>
+                    <p>{h.description}</p>
+                  </div>
                 ))}
-                </tbody>
-            </table>
+              </div>
             </div>
+          )}
+          {issues.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-2">
+                <FaBug /> Issues
+              </h2>
+              <div className="space-y-3">
+                {issues.map((i) => (
+                  <div key={i.id} className="p-3 bg-red-50 border rounded-lg">
+                    <h3 className="font-bold">{i.title}</h3>
+                    <p>{i.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        )}
+      )}
 
-
-      <div className="mt-10 text-right">
+      {/* Footer Actions */}
+      <div className="flex justify-end gap-4">
+        <button
+          onClick={handleDelete}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Delete Project
+        </button>
         <button
           onClick={() => navigate(-1)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl shadow transition"
+          className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
         >
-          ← Back to Projects
+          ← Back
         </button>
       </div>
     </motion.div>
