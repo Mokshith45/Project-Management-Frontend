@@ -8,7 +8,7 @@ const ClientDetail = () => {
   const [client, setClient] = useState(null);
   const [projects, setProjects] = useState([]);
   const [resources, setResources] = useState([]);
-  const [spoc, setSpoc] = useState(null);
+  // const [spoc, setSpoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,13 +22,13 @@ const ClientDetail = () => {
           axios.get(`http://localhost:8080/api/clients/${id}`, { headers }),
           axios.get(`http://localhost:8080/api/projects/client/${id}`, { headers }),
           axios.get(`http://localhost:8080/api/resources/project/${id}`, { headers }),
-          axios.get(`http://localhost:8080/api/contact-persons/${id}`, { headers }),
+          // axios.get(`http://localhost:8080/api/contact-persons/${id}`, { headers }),
         ]);
 
         setClient(clientRes.data);
         setProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
         setResources(Array.isArray(resourcesRes.data) ? resourcesRes.data : []);
-        setSpoc(spocRes.data);
+        // setSpoc(spocRes.data);
       } catch (err) {
         console.error(err);
         setError('Failed to load client details');
@@ -67,7 +67,7 @@ const ClientDetail = () => {
           </div>
         </div>
 
-        {/* Point of Contact Card */}
+        {/* Point of Contact Card
         {spoc && (
           <div className="bg-white rounded-lg border border-indigo-100 shadow-sm p-5 space-y-3">
             <h3 className="text-xl font-semibold text-indigo-700">📞 Point of Contact</h3>
@@ -76,7 +76,7 @@ const ClientDetail = () => {
               <p><strong>Email:</strong> {spoc.email}</p>
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
 

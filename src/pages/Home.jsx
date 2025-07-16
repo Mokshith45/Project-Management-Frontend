@@ -41,7 +41,7 @@ const Home = () => {
       .join(' ');
   };
 
-    useEffect(() => {
+  useEffect(() => {
     const token = localStorage.getItem('token');
     try {
       const decoded = jwtDecode(token);
@@ -55,24 +55,22 @@ const Home = () => {
     }
   }, []);
 
-
   useEffect(() => {
     const fetchContent = async () => {
       try {
         const [
-        clientsRes,
-        projectsRes,
-        positionsRes,
-        highlightsRes,
-        issuesRes,
-      ] = await Promise.all([
-        axiosInstance.get('/api/clients'),
-        axiosInstance.get('/api/projects'),
-        axiosInstance.get('/api/open-positions'),
-        axiosInstance.get('/api/highlights'),
-        axiosInstance.get('/api/issues'),
-      ]);
-
+          clientsRes,
+          projectsRes,
+          positionsRes,
+          highlightsRes,
+          issuesRes,
+        ] = await Promise.all([
+          axiosInstance.get('/api/clients'),
+          axiosInstance.get('/api/projects'),
+          axiosInstance.get('/api/open-positions'),
+          axiosInstance.get('/api/highlights'),
+          axiosInstance.get('/api/issues'),
+        ]);
 
         const clientsList = Array.isArray(clientsRes.data) ? clientsRes.data : clientsRes.data?.data || [];
         const projectsList = Array.isArray(projectsRes.data) ? projectsRes.data : projectsRes.data?.data || [];
@@ -90,22 +88,22 @@ const Home = () => {
           {
             title: 'Total Clients',
             value: clientsList.length,
-            icon: <FaUserTie className="text-2xl text-indigo-600" />,
+            icon: <FaUserTie className="text-xl text-indigo-600" />,
           },
           {
             title: 'Ongoing Projects',
             value: projectsList.filter(p => p.status === 'ACTIVE').length,
-            icon: <FaProjectDiagram className="text-2xl text-purple-600" />,
+            icon: <FaProjectDiagram className="text-xl text-purple-600" />,
           },
           {
             title: 'Open Positions',
             value: positionsList.length,
-            icon: <FaBriefcase className="text-2xl text-red-600" />,
+            icon: <FaBriefcase className="text-xl text-red-600" />,
           },
           {
             title: 'Over-Budget Projects',
             value: projectsList.filter(p => p.overBudget === true).length,
-            icon: <FaMoneyBillWave className="text-2xl text-yellow-500" />,
+            icon: <FaMoneyBillWave className="text-xl text-yellow-500" />,
           },
         ];
 
@@ -125,7 +123,6 @@ const Home = () => {
         setStats(newStats);
         setHighlights(highlightsWithProjectNames);
         setIssues(issuesWithProjectNames);
-
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
       }
@@ -139,20 +136,20 @@ const Home = () => {
   );
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-screen-xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen px-4 py-6 max-w-screen-xl mx-auto flex flex-col gap-5">
 
       {/* Carousel */}
       <div className="w-full fixed top-16 left-28 right-0 z-40">
-        <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-radius-12 border-y border-indigo-300 shadow-sm">
+        <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-y border-indigo-300 shadow-sm">
           <Slider {...carouselSettings}>
             {highlightTexts.length > 0 ? (
               highlightTexts.map((text, index) => (
-                <div key={index} className="py-3 px-6 text-center text-indigo-900 font-medium text-sm sm:text-base tracking-wide">
+                <div key={index} className="py-2 px-6 text-center text-indigo-900 font-medium text-sm tracking-wide">
                   {text}
                 </div>
               ))
             ) : (
-              <div className="py-3 px-6 text-center text-gray-600">No highlights available</div>
+              <div className="py-2 px-6 text-center text-gray-600">No highlights available</div>
             )}
           </Slider>
         </div>
@@ -163,14 +160,14 @@ const Home = () => {
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="mt-8 flex flex-col md:flex-row items-start justify-between gap-6"
+        className="mt-10 flex flex-col md:flex-row items-start justify-between gap-5"
       >
-        <div className="flex-grow max-w-2xl bg-gradient-to-r from-indigo-700 to-purple-700 text-white p-6 rounded-xl shadow">
-          <h1 className="text-3xl font-bold">Welcome back, {username} 👋</h1>
+        <div className="flex-grow max-w-2xl bg-gradient-to-r from-indigo-700 to-purple-700 text-white p-5 rounded-xl shadow">
+          <h1 className="text-2xl font-bold">Welcome back, {username} 👋</h1>
           <p className="text-sm text-indigo-100 mt-1">Here’s your dashboard</p>
         </div>
 
-        <aside className="flex flex-row md:flex-col gap-4">
+        <aside className="flex flex-row md:flex-col gap-3">
           {[
             {
               icon: <FaUserShield />,
@@ -194,33 +191,23 @@ const Home = () => {
               hoverClass: 'hover:bg-yellow-600',
             },
           ].map((cta, i) => (
-            <motion.div
+            <div
               key={i}
-              whileHover={{ scale: 1.1 }}
-              className="group flex items-center cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => navigate(cta.path)}
             >
-              <button
-                className={`${cta.bgClass} ${cta.hoverClass} text-white p-3 rounded-full shadow-md transition duration-200`}
-                onClick={() => navigate(cta.path)}
-              >
+              <button className={`${cta.bgClass} ${cta.hoverClass} text-white p-2.5 rounded-full shadow-md`}>
                 {cta.icon}
               </button>
-              <span
-                className={`${cta.bgClass} text-white ml-2 px-3 py-1 rounded-md text-sm font-medium
-                  opacity-0 group-hover:opacity-100
-                  scale-90 group-hover:scale-100
-                  transition-all duration-200 origin-left whitespace-nowrap shadow-md`}
-              >
-                {cta.label}
-              </span>
-            </motion.div>
+              <span className="text-sm font-medium text-gray-700">{cta.label}</span>
+            </div>
           ))}
         </aside>
       </motion.div>
 
       {/* Stat Cards */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
@@ -239,49 +226,46 @@ const Home = () => {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0 },
               }}
-              className={`bg-white shadow-md rounded-xl p-5 flex items-center gap-4 ${
+              className={`bg-white shadow-md rounded-xl p-4 flex items-center gap-4 ${
                 isNavigable ? 'cursor-pointer hover:shadow-lg transition' : ''
               }`}
               onClick={() => {
                 if (targetPath) navigate(targetPath);
               }}
             >
-              <div className="bg-gray-100 p-3 rounded-full">{stat.icon}</div>
+              <div className="bg-gray-100 p-2 rounded-full">{stat.icon}</div>
               <div>
-                <p className="text-sm text-gray-500">{stat.title}</p>
-                <p className="text-xl font-semibold text-gray-800">
+                <p className="text-xs text-gray-500">{stat.title}</p>
+                <p className="text-lg font-semibold text-gray-800">
                   <CountUp end={stat.value} duration={1.5} />
                 </p>
               </div>
             </motion.div>
           );
         })}
-
-
       </motion.div>
 
       {/* Highlights Section */}
       <motion.section
-        className="mb-10"
+        className="mb-6"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
       >
-        <h2 className="text-lg font-semibold text-indigo-700 mb-4">🎯 Recent Highlights</h2>
-        <ol className="relative border-l-2 border-indigo-300 ml-4">
+        <h2 className="text-base font-semibold text-indigo-700 mb-3">🎯 Recent Highlights</h2>
+        <ol className="relative border-l-2 border-indigo-300 ml-2">
           {(showAllHighlights ? highlights : highlights.slice(0, 3)).map((hl) => (
-            <li key={hl.id} className="mb-8 pl-6 relative">
-              <span className="absolute -left-3 top-2 w-4 h-4 bg-indigo-600 rounded-full border-2 border-white" />
-              <h4 className="text-sm font-bold text-indigo-800">{hl.project}</h4>
-              <h2 className="text-xs text-gray-600">{hl.title}</h2>
+            <li key={hl.id} className="mb-4 pl-6 relative">
+              <span className="absolute -left-3 top-2 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white" />
+              <h4 className="text-sm font-semibold text-indigo-800">{hl.project}</h4>
+              <p className="text-xs text-gray-600">{hl.title}</p>
               <p className="text-xs text-gray-400">Date: {hl.date}</p>
             </li>
           ))}
         </ol>
-
         {highlights.length > 3 && (
-          <div className="mt-2 ml-4">
+          <div className="mt-1 ml-2">
             <button
               onClick={() => setShowAllHighlights((prev) => !prev)}
               className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition duration-200"
@@ -303,31 +287,29 @@ const Home = () => {
         )}
       </motion.section>
 
-
       {/* Issues Section */}
       <motion.section
-        className="mb-10"
+        className="mb-6"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
       >
-        <h2 className="text-lg font-semibold text-red-600 mb-3">🐞 Reported Issues</h2>
-        <ul className="bg-white border border-red-200 p-4 rounded-xl space-y-2 shadow-sm">
+        <h2 className="text-base font-semibold text-red-600 mb-3">🐞 Reported Issues</h2>
+        <ul className="bg-white border border-red-200 p-4 rounded-xl space-y-1 shadow-sm">
           {issues.length === 0 ? (
             <li className="text-sm text-gray-500">No reported issues found</li>
           ) : (
             issues.map((issue) => (
               <li key={issue.id} className="text-sm text-red-700">
                 <h4>Project: {issue.project}</h4>
-                <p className='text-xs text-gray-400'>{issue.description}</p>
+                <p className="text-xs text-gray-500">{issue.description}</p>
                 <p className="text-xs text-gray-400">Date: {issue.createdDate}</p>
               </li>
             ))
           )}
         </ul>
       </motion.section>
-
     </div>
   );
 };

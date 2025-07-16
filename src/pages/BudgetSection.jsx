@@ -75,7 +75,7 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
   const getStatusText = () => {
     if (status === 'exact') return 'Budget perfectly utilized';
     if (status === 'deficit') return `⚠ Over budget by ₹ ${(budgetSpent - budgetQuoted).toLocaleString()}`;
-    if (status === 'surplus') return ` Surplus₹ ${(budgetQuoted - budgetSpent).toLocaleString()}`;
+    if (status === 'surplus') return ` Surplus ₹ ${(budgetQuoted - budgetSpent).toLocaleString()}`;
     return '';
   };
 
@@ -91,8 +91,8 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
       <h2 className="text-xl font-semibold text-gray-800 mb-4">💰 Budget Breakdown</h2>
 
       <div className="flex justify-between text-sm text-gray-800 mb-2">
-        <p><strong>Budget Quoted:</strong> ₹ {budgetQuoted.toLocaleString()}</p>
         <p><strong>Budget Spent:</strong> ₹ {budgetSpent.toLocaleString()}</p>
+        <p><strong>Budget Quoted:</strong> ₹ {budgetQuoted.toLocaleString()}</p>
       </div>
 
       <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden mb-2">
@@ -101,6 +101,7 @@ const BudgetSection = ({ projectId, budgetQuoted, allocatedResources }) => {
           style={{ width: `${Math.min((budgetSpent / budgetQuoted) * 100, 100)}%` }}
         ></div>
       </div>
+      
 
       <p className={`text-sm font-medium mt-1 ${
         status === 'deficit'
